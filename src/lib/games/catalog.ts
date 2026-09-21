@@ -7,7 +7,7 @@ export const GAMES: readonly Game[] = [
     description:
       "A tabletop cybersecurity decision-making game where players respond to unfolding incidents as a team. See https://www.decisions-disruptions.org for the original physical edition.",
     minPlayers: 3,
-    maxPlayers: 6,
+    maxPlayers: 5,
     estimatedMinutes: 90,
   },
 ];

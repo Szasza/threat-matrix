@@ -9,7 +9,7 @@ describe("GAMES", () => {
     expect(game?.name).toBe("Decisions & Disruptions");
     expect(game?.description).toContain("decisions-disruptions.org");
     expect(game?.minPlayers).toBe(3);
-    expect(game?.maxPlayers).toBe(6);
+    expect(game?.maxPlayers).toBe(5);
     expect(game?.estimatedMinutes).toBe(90);
   });
 
