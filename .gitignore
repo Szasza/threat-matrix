@@ -46,3 +46,6 @@ storybook-static
 
 # playwright mcp
 /.playwright-mcp
+
+# specs
+/specs
