@@ -60,6 +60,23 @@ export const AtOrOverMax: Story = {
   },
 };
 
+export const ZeroMax: Story = {
+  args: {
+    label: "Budget remaining",
+    value: 0,
+    max: 0,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const bar = canvas.getByRole("progressbar", { name: "Budget remaining" });
+    await expect(bar).toHaveAttribute("aria-valuenow", "0");
+    const filled = canvasElement.querySelector(
+      "[aria-hidden='true'] > div",
+    ) as HTMLElement;
+    await expect(filled.style.width).toBe("0%");
+  },
+};
+
 export const WithCustomFormat: Story = {
   args: {
     label: "Score",

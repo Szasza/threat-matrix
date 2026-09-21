@@ -34,6 +34,14 @@ export type RoomTemplateProps =
       onLeave: () => void;
       onRemoved: () => void;
       onStartGame: (settings: GameSettings) => void | Promise<void>;
+      /**
+       * Test-only override of the heartbeat interval. Defaults to the real
+       * `HEARTBEAT_INTERVAL_MS` in production; stories inject a much shorter
+       * value so play functions can exercise the real interval-based code
+       * path without waiting on (or fighting fake timers around) a real 30s
+       * timer.
+       */
+      heartbeatIntervalMs?: number;
     };
 
 type RoomEventPayload = Room & { game: GameState | null };
@@ -142,6 +150,7 @@ function RoomGameRouter(
     onLeave,
     onRemoved,
     onStartGame,
+    heartbeatIntervalMs = HEARTBEAT_INTERVAL_MS,
   } = props;
 
   const [hostParticipantId, setHostParticipantId] = useState(
@@ -184,12 +193,12 @@ function RoomGameRouter(
         clearInterval(interval);
         onRemoved();
       }
-    }, HEARTBEAT_INTERVAL_MS);
+    }, heartbeatIntervalMs);
     return () => {
       removed = true;
       clearInterval(interval);
     };
-  }, [isInSetupPhase, roomCode, onRemoved]);
+  }, [isInSetupPhase, roomCode, onRemoved, heartbeatIntervalMs]);
 
   if (isInSetupPhase) {
     return (
