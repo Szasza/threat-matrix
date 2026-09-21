@@ -6,7 +6,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-lg shadow-slate-200/80">
         <div className="mb-8 text-center">
           <p className="text-sm font-medium uppercase tracking-[0.2em] text-sky-600">
-            Decisions & Disruptions
+            Threat Matrix
           </p>
           <h1 className="mt-3 text-3xl font-semibold text-slate-900">
             Welcome back
