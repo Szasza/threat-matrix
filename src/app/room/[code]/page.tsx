@@ -1,5 +1,6 @@
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
+import { gameStore } from "@/lib/decisions-disruptions/store";
 import { getGameById } from "@/lib/games/catalog";
 import { roomStore } from "@/lib/rooms/store";
 import { RoomPageClient } from "./RoomPageClient";
@@ -42,6 +43,7 @@ export default async function RoomPage({
   const host = headersList.get("host") ?? "localhost:3000";
   const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
   const shareUrl = `${protocol}://${host}/room/${code}`;
+  const initialGame = gameStore.getGame(code)?.state ?? null;
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-12 text-slate-50">
@@ -53,6 +55,7 @@ export default async function RoomPage({
             hasJoined
             currentParticipantId={currentParticipantId}
             initialRoom={room}
+            initialGame={initialGame}
             shareUrl={shareUrl}
           />
         ) : (

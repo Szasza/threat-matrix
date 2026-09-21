@@ -52,6 +52,15 @@ export default defineConfig({
         resolve: {
           alias: {
             "@": path.join(dirname, "src"),
+            // "server-only"'s default export throws unconditionally; only
+            // Next.js's webpack build resolves it to the no-op "empty.js"
+            // (via the "react-server" exports condition it doesn't itself
+            // set up here). Alias it directly so unit tests can import
+            // server-only modules like a Next.js server build would.
+            "server-only": path.join(
+              dirname,
+              "node_modules/server-only/empty.js",
+            ),
           },
         },
         test: {

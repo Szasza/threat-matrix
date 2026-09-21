@@ -3,9 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RoomTemplate } from "@/components/templates/RoomTemplate/RoomTemplate";
+import type { GameState } from "@/lib/decisions-disruptions/types";
 import type { Game } from "@/lib/games/types";
 import type { Room } from "@/lib/rooms/types";
-import { joinRoomAction } from "./actions";
+import { joinRoomAction, startGameAction } from "./actions";
 
 export type RoomPageClientProps =
   | {
@@ -19,6 +20,7 @@ export type RoomPageClientProps =
       hasJoined: true;
       currentParticipantId: string;
       initialRoom: Room;
+      initialGame: GameState | null;
       shareUrl: string;
     };
 
@@ -62,6 +64,7 @@ export function RoomPageClient(props: RoomPageClientProps) {
       mode="lobby"
       game={game}
       initialRoom={props.initialRoom}
+      initialGame={props.initialGame}
       roomCode={code}
       currentParticipantId={props.currentParticipantId}
       shareUrl={props.shareUrl}
@@ -71,6 +74,17 @@ export function RoomPageClient(props: RoomPageClientProps) {
       }}
       onRemoved={() => {
         router.push("/games?disconnected=1");
+      }}
+      onStartGame={async (settings) => {
+        try {
+          await startGameAction(code, settings);
+        } catch {
+          // Only the host can reach this action, and the setup panel already
+          // gates the button on that; a failure here indicates a stale/edge
+          // case (e.g. host reassigned mid-click) with no dedicated recovery
+          // UI, so it's a best-effort no-op — the room's SSE stream is the
+          // source of truth for what actually happened.
+        }
       }}
     />
   );

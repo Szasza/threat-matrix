@@ -5,14 +5,13 @@ export default function Home() {
     <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-12 text-slate-50">
       <div className="w-full max-w-2xl rounded-3xl border border-slate-800 bg-slate-900 p-8 shadow-2xl shadow-slate-950/50 sm:p-12">
         <p className="text-sm font-medium uppercase tracking-[0.24em] text-sky-400">
-          Decisions & Disruptions
+          Threat Matrix
         </p>
         <h1 className="mt-4 text-4xl font-semibold tracking-tight sm:text-5xl">
-          Turn complex choices into decisive action.
+          Turn complex security challenges into gamified experiences.
         </h1>
         <p className="mt-5 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">
-          A focused workspace for tracking strategic decisions, surfacing
-          disruption signals, and aligning teams around what matters most.
+          A digital hub for security, where you can explore, play, and learn from a variety of security-focused games.
         </p>
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
           <Link
