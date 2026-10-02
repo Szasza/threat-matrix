@@ -1,6 +1,7 @@
 import type { JSX } from "react";
 import { DefenceShop } from "@/components/organisms/DefenceShop/DefenceShop";
 import { RoundRevealPanel } from "@/components/organisms/RoundRevealPanel/RoundRevealPanel";
+import { ScenarioBriefing } from "@/components/organisms/ScenarioBriefing/ScenarioBriefing";
 import type { GameState } from "@/lib/decisions-disruptions/types";
 
 export interface GameBoardTemplateProps {
@@ -29,6 +30,8 @@ export function GameBoardTemplate({
       <h2 className="text-xl font-semibold text-slate-100">
         Round {game.round} / 4
       </h2>
+
+      <ScenarioBriefing />
 
       <DefenceShop
         game={game}

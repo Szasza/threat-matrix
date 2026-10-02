@@ -58,6 +58,7 @@ export const RoundOneNoHistory: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Round 1 / 4")).toBeVisible();
     expect(canvas.queryByText("Previous rounds")).not.toBeInTheDocument();
+    await expect(canvas.getByText("Your mission")).toBeVisible();
   },
 };
 
@@ -75,6 +76,8 @@ export const RoundThreeWithHistory: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Round 3 / 4")).toBeVisible();
+    // The briefing stays open in later rounds — only players collapse it.
+    await expect(canvas.getByText("Your mission")).toBeVisible();
 
     const headings = canvas.getAllByText(/^Round \d$/);
     // Most-recent-round-first: Round 2 before Round 1 in the reveal feed.
