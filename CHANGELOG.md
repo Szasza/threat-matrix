@@ -1,3 +1,9 @@
+## [0.4.0](https://github.com/Szasza/threat-matrix/compare/v0.3.0...v0.4.0) (2026-10-02)
+
+### Features
+
+* adding scenario briefing ([#25](https://github.com/Szasza/threat-matrix/issues/25)) ([4a3153d](https://github.com/Szasza/threat-matrix/commit/4a3153d75dc735be4ae06da84fa13f9f67e0754f))
+
 ## [0.3.0](https://github.com/Szasza/threat-matrix/compare/v0.2.0...v0.3.0) (2026-10-02)
 
 ### Features
