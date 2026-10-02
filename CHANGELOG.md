@@ -1,3 +1,9 @@
+## [0.5.0](https://github.com/Szasza/threat-matrix/compare/v0.4.1...v0.5.0) (2026-10-02)
+
+### Features
+
+* add voting on cards ([#27](https://github.com/Szasza/threat-matrix/issues/27)) ([fc15572](https://github.com/Szasza/threat-matrix/commit/fc1557219c7ae7f82e52a8ad30e70553c11b96a6))
+
 ## [0.4.1](https://github.com/Szasza/threat-matrix/compare/v0.4.0...v0.4.1) (2026-10-02)
 
 ### Bug Fixes
