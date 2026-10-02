@@ -1,3 +1,9 @@
+## [0.6.0](https://github.com/Szasza/threat-matrix/compare/v0.5.0...v0.6.0) (2026-10-02)
+
+### Features
+
+* removing revealing information from player display ([#28](https://github.com/Szasza/threat-matrix/issues/28)) ([6e0183a](https://github.com/Szasza/threat-matrix/commit/6e0183a4aaa6f5eb04d9c644c77b302115e43f85))
+
 ## [0.5.0](https://github.com/Szasza/threat-matrix/compare/v0.4.1...v0.5.0) (2026-10-02)
 
 ### Features
