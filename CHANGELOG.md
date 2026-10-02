@@ -1,3 +1,9 @@
+## [0.3.0](https://github.com/Szasza/threat-matrix/compare/v0.2.0...v0.3.0) (2026-10-02)
+
+### Features
+
+* add card descriptions ([#24](https://github.com/Szasza/threat-matrix/issues/24)) ([55f7387](https://github.com/Szasza/threat-matrix/commit/55f73879ee642b421064607526401be7830bbbb0))
+
 ## [0.2.0](https://github.com/Szasza/threat-matrix/compare/v0.1.0...v0.2.0) (2026-09-21)
 
 ### Features
