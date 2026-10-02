@@ -29,13 +29,17 @@ export function RoomPageClient(props: RoomPageClientProps) {
   const router = useRouter();
   const [joinError, setJoinError] = useState<string | undefined>(undefined);
 
-  // Best-effort: if the tab closes without an explicit "Leave room" click,
-  // this fires a beacon so the participant is removed immediately rather
-  // than waiting on the ~60-75s heartbeat/TTL sweep as the sole fallback.
+  // If the tab closes or reloads without an explicit "Leave room" click, this
+  // fires a beacon marking the participant as departing: they're dropped once
+  // `LEAVE_GRACE_MS` passes, unless the reloaded page's SSE reconnect
+  // cancels it first (even a slow reload), keeping their
+  // seat (and the game master role). A page kept in the back/forward cache
+  // (`persisted`) may come back as-is, so it's left to the heartbeat sweep.
   useEffect(() => {
     if (!hasJoined) return;
-    const handlePageHide = () => {
-      navigator.sendBeacon(`/api/rooms/${code}/leave`);
+    const handlePageHide = (event: PageTransitionEvent) => {
+      if (event.persisted) return;
+      navigator.sendBeacon(`/api/rooms/${code}/leave?departing=1`);
     };
     window.addEventListener("pagehide", handlePageHide);
     return () => window.removeEventListener("pagehide", handlePageHide);

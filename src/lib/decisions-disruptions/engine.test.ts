@@ -283,3 +283,64 @@ describe("the Perfect Game walkthrough (BETA_D-D_Game_Master_Cheat_Sheet.pdf)", 
     });
   });
 });
+
+describe("reveal entry visibility to players", () => {
+  function entriesFor(state: GameState, cart: Defence[] = []): RevealEntry[] {
+    return resolveRound(state, cart, settings).revealEntries;
+  }
+
+  it("hides an attack that hasn't started yet", () => {
+    const entry = findEntry(entriesFor(emptyState(1)), "DoSing Kiddie");
+    expect(entry.narrative).toBe("This attack has not started yet.");
+    expect(entry.visibleToPlayers).toBe(false);
+  });
+
+  it("hides an uncountered step with no visible effect", () => {
+    const entry = findEntry(entriesFor(emptyState(1)), "Scanning Kiddie");
+    expect(entry.countered).toBe(false);
+    expect(entry.narrative).toBe("No visible effect.");
+    expect(entry.visibleToPlayers).toBe(false);
+  });
+
+  it("shows a countered step whose narration the players would notice", () => {
+    const entry = findEntry(
+      entriesFor(emptyState(1), [d("Firewall office")]),
+      "Scanning Kiddie",
+    );
+    expect(entry.countered).toBe(true);
+    expect(entry.visibleToPlayers).toBe(true);
+  });
+
+  it("shows an uncountered step with a visible effect", () => {
+    const entry = findEntry(entriesFor(emptyState(3)), "Hacking Kiddie");
+    expect(entry.countered).toBe(false);
+    expect(entry.narrative).toContain("snarky email");
+    expect(entry.visibleToPlayers).toBe(true);
+  });
+
+  it("hides a countered step whose outcome has no visible effect", () => {
+    const state: GameState = {
+      ...emptyState(3),
+      ownedDefences: [{ defence: d("Asset audit"), round: 1 }],
+    };
+    const entry = findEntry(
+      entriesFor(state, [d("Encryption DB")]),
+      "Hacking Kiddie",
+    );
+    expect(entry.countered).toBe(true);
+    expect(entry.narrative).toMatch(/^No visible effect: /);
+    expect(entry.visibleToPlayers).toBe(false);
+  });
+
+  it("hides the repeat entry for an attack countered in an earlier round", () => {
+    const state: GameState = {
+      ...emptyState(2),
+      ownedDefences: [{ defence: d("Firewall office"), round: 1 }],
+    };
+    const entry = findEntry(entriesFor(state), "Scanning Kiddie");
+    expect(entry.narrative).toBe(
+      "This attack was countered at an earlier stage.",
+    );
+    expect(entry.visibleToPlayers).toBe(false);
+  });
+});

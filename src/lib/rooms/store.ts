@@ -1,6 +1,10 @@
 import { EventEmitter } from "node:events";
 import { generateRoomCode } from "@/lib/rooms/codes";
-import { STALE_AFTER_MS, SWEEP_TICK_MS } from "@/lib/rooms/constants";
+import {
+  LEAVE_GRACE_MS,
+  STALE_AFTER_MS,
+  SWEEP_TICK_MS,
+} from "@/lib/rooms/constants";
 import type { Participant, Room } from "@/lib/rooms/types";
 
 export interface CreateRoomInput {
@@ -28,6 +32,13 @@ export interface RoomStore {
   getRoom(code: string): Room | undefined;
   joinRoom(code: string, input: JoinRoomInput): JoinRoomResult;
   leaveRoom(code: string, participantId: string): void;
+  /**
+   * Soft leave for a page unload, which can't tell a closed tab from a
+   * reload: the participant stays for `LEAVE_GRACE_MS` (regardless of the
+   * heartbeat timeout), and is removed by the sweep only if nothing
+   * (`touchParticipant`, `joinRoom`) re-confirms them.
+   */
+  markDeparting(code: string, participantId: string): void;
   touchParticipant(code: string, participantId: string): boolean;
   subscribe(code: string, listener: (room: Room) => void): () => void;
 }
@@ -78,8 +89,16 @@ function reassignHostIfNeeded(room: Room, removedParticipantId: string): void {
   room.hostParticipantId = nextHost.id;
 }
 
+function departingKey(code: string, participantId: string): string {
+  return `${code}:${participantId}`;
+}
+
 export function createRoomStore(): RoomStore {
   const rooms = new Map<string, Room>();
+  // Removal deadlines for participants whose page unloaded (see
+  // `markDeparting`), keyed by `departingKey`. Kept off `Participant` so it
+  // isn't broadcast with the roster. While set, it replaces the stale check.
+  const departingUntil = new Map<string, number>();
   const emitter = new EventEmitter();
   emitter.setMaxListeners(100);
 
@@ -130,6 +149,7 @@ export function createRoomStore(): RoomStore {
       if (existing) {
         existing.displayName = sanitizedDisplayName;
         existing.lastSeenAt = now;
+        departingUntil.delete(departingKey(code, participantId));
         participant = existing;
       } else {
         participant = {
@@ -159,8 +179,24 @@ export function createRoomStore(): RoomStore {
         return;
       }
       room.participants.splice(index, 1);
+      departingUntil.delete(departingKey(code, participantId));
       reassignHostIfNeeded(room, participantId);
       emitUpdate(room);
+    },
+
+    markDeparting(code, participantId) {
+      const participant = rooms
+        .get(code)
+        ?.participants.find((p) => p.id === participantId);
+      if (!participant) {
+        return;
+      }
+      // The beacon itself is a sign of life, so the full grace period runs
+      // from now — even past the usual `STALE_AFTER_MS` heartbeat timeout.
+      departingUntil.set(
+        departingKey(code, participantId),
+        Date.now() + LEAVE_GRACE_MS,
+      );
     },
 
     touchParticipant(code, participantId) {
@@ -173,6 +209,7 @@ export function createRoomStore(): RoomStore {
         return false;
       }
       participant.lastSeenAt = Date.now();
+      departingUntil.delete(departingKey(code, participantId));
       return true;
     },
 
@@ -187,16 +224,19 @@ export function createRoomStore(): RoomStore {
   const sweep = setInterval(() => {
     const now = Date.now();
     for (const room of rooms.values()) {
-      const staleParticipants = room.participants.filter(
-        (p) => now - p.lastSeenAt > STALE_AFTER_MS,
-      );
+      const isGone = (p: Participant): boolean => {
+        const deadline = departingUntil.get(departingKey(room.code, p.id));
+        return deadline === undefined
+          ? now - p.lastSeenAt > STALE_AFTER_MS
+          : now > deadline;
+      };
+      const staleParticipants = room.participants.filter(isGone);
       if (staleParticipants.length === 0) {
         continue;
       }
-      room.participants = room.participants.filter(
-        (p) => now - p.lastSeenAt <= STALE_AFTER_MS,
-      );
+      room.participants = room.participants.filter((p) => !isGone(p));
       for (const stale of staleParticipants) {
+        departingUntil.delete(departingKey(room.code, stale.id));
         reassignHostIfNeeded(room, stale.id);
       }
       emitUpdate(room);

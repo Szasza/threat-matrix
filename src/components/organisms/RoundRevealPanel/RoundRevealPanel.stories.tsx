@@ -18,12 +18,14 @@ type Story = StoryObj<typeof meta>;
 
 const entries: RevealEntry[] = [
   {
+    visibleToPlayers: true,
     attackName: "Phishing email",
     stepName: "Initial access",
     countered: true,
     narrative: "Security training helped staff spot the phishing attempt.",
   },
   {
+    visibleToPlayers: true,
     attackName: "Ransomware",
     stepName: "Encryption",
     countered: false,
@@ -70,5 +72,75 @@ export const EmptyEntries: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Round 1")).toBeVisible();
+  },
+};
+
+export const PlayerViewEffectOnly: Story = {
+  args: {
+    round: 2,
+    entries: [
+      {
+        countered: false,
+        narrative: "The office network is hit with traffic.",
+        visibleToPlayers: true,
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const item = canvas.getByRole("listitem");
+    // Only the effect: no attacker/step heading, no game-master tag.
+    await expect(item).toHaveTextContent(
+      /^The office network is hit with traffic\.$/,
+    );
+    await expect(item.querySelectorAll("p")).toHaveLength(1);
+    await expect(item).toHaveAttribute("data-countered", "false");
+    expect(canvas.queryByText("Hidden from players")).not.toBeInTheDocument();
+  },
+};
+
+export const PlayerViewNothingNoticed: Story = {
+  args: { round: 1, entries: [] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("Nothing out of the ordinary was noticed this round."),
+    ).toBeVisible();
+    expect(canvas.queryByRole("listitem")).not.toBeInTheDocument();
+  },
+};
+
+export const GameMasterSeesHiddenEntries: Story = {
+  args: {
+    round: 1,
+    entries: [
+      {
+        attackName: "DoSing Kiddie",
+        stepName: "",
+        countered: true,
+        narrative: "This attack has not started yet.",
+        visibleToPlayers: false,
+      },
+      {
+        attackName: "Scanning Kiddie",
+        stepName: "Scan offices",
+        countered: true,
+        narrative:
+          "The office firewall intercepts a number of scanning attempts.",
+        visibleToPlayers: true,
+      },
+    ],
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("DoSing Kiddie")).toBeVisible();
+    await expect(canvas.getByText("Scanning Kiddie")).toBeVisible();
+    await expect(canvas.getByText("Scan offices")).toBeVisible();
+
+    const hiddenTags = canvas.getAllByText("Hidden from players");
+    await expect(hiddenTags).toHaveLength(1);
+    await expect(
+      hiddenTags[0].closest("[data-visible-to-players]"),
+    ).toHaveAttribute("data-visible-to-players", "false");
   },
 };
