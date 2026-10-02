@@ -1,3 +1,9 @@
+## [0.4.1](https://github.com/Szasza/threat-matrix/compare/v0.4.0...v0.4.1) (2026-10-02)
+
+### Bug Fixes
+
+* store state ([#26](https://github.com/Szasza/threat-matrix/issues/26)) ([4ce0595](https://github.com/Szasza/threat-matrix/commit/4ce05954d67a375605f7ae089d0c84bfb58e5723))
+
 ## [0.4.0](https://github.com/Szasza/threat-matrix/compare/v0.3.0...v0.4.0) (2026-10-02)
 
 ### Features
