@@ -39,10 +39,25 @@ export interface GameSettings {
 }
 
 export interface RevealEntry {
-  attackName: string;
-  stepName: string;
+  /**
+   * The attacker, e.g. "Mafia APT PC Offices". Only the game master sees it:
+   * `redactGameStateForPlayer` strips it from every non-host payload.
+   */
+  attackName?: string;
+  /**
+   * What the attacker did this round, e.g. "Scan offices". Game master only,
+   * like `attackName` — players get just the effect (`narrative`).
+   */
+  stepName?: string;
   countered: boolean;
   narrative: string;
+  /**
+   * False when the players wouldn't notice anything this round — the attack
+   * hasn't started yet, was already countered in an earlier round, or its
+   * outcome has no visible effect. Such entries are dropped from non-host
+   * payloads entirely; the game master still sees them, flagged.
+   */
+  visibleToPlayers: boolean;
 }
 
 export type GamePhase = "setup" | "round" | "finished";

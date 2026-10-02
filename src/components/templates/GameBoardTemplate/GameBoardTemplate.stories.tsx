@@ -30,6 +30,7 @@ const firewallOffice = getDefenceByName("Firewall office")!;
 
 const round1Entries: RevealEntry[] = [
   {
+    visibleToPlayers: true,
     attackName: "Phishing email",
     stepName: "Initial access",
     countered: true,
@@ -39,6 +40,7 @@ const round1Entries: RevealEntry[] = [
 
 const round2Entries: RevealEntry[] = [
   {
+    visibleToPlayers: true,
     attackName: "Ransomware",
     stepName: "Encryption",
     countered: false,

@@ -59,6 +59,14 @@ export function computeScores(state: GameState): Record<Category, number> {
 }
 
 /**
+ * Every outcome the players wouldn't notice — an uncountered step's "No
+ * visible effect." as well as countered ones like "No visible effect: the
+ * data stolen by the attackers is unreadable…" — starts with this phrase in
+ * the verbatim `attacks.server.ts` narration.
+ */
+const NO_VISIBLE_EFFECT = "No visible effect";
+
+/**
  * Resolves a single attack's step for `uptoRound`, replaying the full
  * "once countered, always countered" propagation from round 1 — ported from
  * `debrief.js`'s `counter_attacks`. Deployed defences are checked in
@@ -117,7 +125,19 @@ function resolveAttackStepAtRound(
     return step.counters[counteredBy];
   })();
 
-  return { attackName: attack.name, stepName: step.name, countered, narrative };
+  const notStartedYet = countered && Object.keys(step.counters).length === 0;
+  const visibleToPlayers =
+    !notStartedYet &&
+    counteredBy !== "earlier counter" &&
+    !narrative.startsWith(NO_VISIBLE_EFFECT);
+
+  return {
+    attackName: attack.name,
+    stepName: step.name,
+    countered,
+    narrative,
+    visibleToPlayers,
+  };
 }
 
 export interface ResolveRoundResult {

@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   HEARTBEAT_INTERVAL_MS,
+  LEAVE_GRACE_MS,
+  SSE_KEEPALIVE_MS,
   STALE_AFTER_MS,
   SWEEP_TICK_MS,
 } from "@/lib/rooms/constants";
@@ -336,6 +338,151 @@ describe("createRoomStore", () => {
       }
 
       expect(store.getRoom(room.code)?.participants).toHaveLength(1);
+    });
+  });
+
+  describe("markDeparting (page unload)", () => {
+    function roomWithGuest() {
+      const store = createRoomStore();
+      const { room } = store.createRoom({
+        gameId: "decisions-and-disruptions",
+        hostDisplayName: "Alice",
+        hostParticipantId: "host-1",
+      });
+      store.joinRoom(room.code, {
+        participantId: "guest-1",
+        displayName: "Bob",
+      });
+      return { store, code: room.code };
+    }
+
+    /** Advances time in keep-alive steps, heartbeating `alive` along the way. */
+    function advance(
+      store: ReturnType<typeof createRoomStore>,
+      code: string,
+      ms: number,
+      alive: string[],
+    ) {
+      for (let elapsed = 0; elapsed < ms; elapsed += SSE_KEEPALIVE_MS) {
+        vi.advanceTimersByTime(Math.min(SSE_KEEPALIVE_MS, ms - elapsed));
+        for (const id of alive) store.touchParticipant(code, id);
+      }
+    }
+
+    const ids = (store: ReturnType<typeof createRoomStore>, code: string) =>
+      store.getRoom(code)?.participants.map((p) => p.id);
+
+    it("keeps the participant, and the host role, for the whole grace period — past the heartbeat timeout", () => {
+      vi.useFakeTimers();
+      const { store, code } = roomWithGuest();
+      expect(LEAVE_GRACE_MS).toBeGreaterThan(STALE_AFTER_MS + SWEEP_TICK_MS);
+
+      store.markDeparting(code, "host-1");
+      advance(store, code, LEAVE_GRACE_MS - 1_000, ["guest-1"]);
+
+      expect(ids(store, code)).toEqual(["host-1", "guest-1"]);
+      expect(store.getRoom(code)?.hostParticipantId).toBe("host-1");
+    });
+
+    it("removes the participant and hands over the host role once the grace period ends", () => {
+      vi.useFakeTimers();
+      const { store, code } = roomWithGuest();
+
+      store.markDeparting(code, "host-1");
+      advance(store, code, LEAVE_GRACE_MS + SWEEP_TICK_MS, ["guest-1"]);
+
+      expect(ids(store, code)).toEqual(["guest-1"]);
+      expect(store.getRoom(code)?.hostParticipantId).toBe("guest-1");
+    });
+
+    it("is cancelled by a touch, e.g. the reloaded page reconnecting", () => {
+      vi.useFakeTimers();
+      const { store, code } = roomWithGuest();
+
+      store.markDeparting(code, "host-1");
+      advance(store, code, 90_000, ["guest-1"]); // a slow reload
+      store.touchParticipant(code, "host-1");
+      advance(store, code, LEAVE_GRACE_MS + SWEEP_TICK_MS, [
+        "host-1",
+        "guest-1",
+      ]);
+
+      expect(ids(store, code)).toEqual(["host-1", "guest-1"]);
+      expect(store.getRoom(code)?.hostParticipantId).toBe("host-1");
+    });
+
+    it("falls back to the normal heartbeat timeout once cancelled", () => {
+      vi.useFakeTimers();
+      const { store, code } = roomWithGuest();
+
+      store.markDeparting(code, "host-1");
+      store.touchParticipant(code, "host-1");
+      advance(store, code, STALE_AFTER_MS + SWEEP_TICK_MS, ["guest-1"]);
+
+      expect(ids(store, code)).toEqual(["guest-1"]);
+    });
+
+    it("is cancelled by rejoining", () => {
+      vi.useFakeTimers();
+      const { store, code } = roomWithGuest();
+
+      store.markDeparting(code, "guest-1");
+      store.joinRoom(code, { participantId: "guest-1", displayName: "Bob" });
+      advance(store, code, LEAVE_GRACE_MS + SWEEP_TICK_MS, [
+        "host-1",
+        "guest-1",
+      ]);
+
+      expect(ids(store, code)).toEqual(["host-1", "guest-1"]);
+    });
+
+    it("is cleared by an explicit leave, so a later rejoin starts fresh", () => {
+      vi.useFakeTimers();
+      const { store, code } = roomWithGuest();
+
+      store.markDeparting(code, "guest-1");
+      store.leaveRoom(code, "guest-1");
+      store.joinRoom(code, { participantId: "guest-1", displayName: "Bob" });
+      advance(store, code, LEAVE_GRACE_MS + SWEEP_TICK_MS, [
+        "host-1",
+        "guest-1",
+      ]);
+
+      expect(ids(store, code)).toEqual(["host-1", "guest-1"]);
+    });
+
+    it("survives a late beacon while the reconnected stream keeps pinging", () => {
+      vi.useFakeTimers();
+      const { store, code } = roomWithGuest();
+
+      // The beacon lands *after* the new page connected; only the stream's
+      // keep-alive touches follow.
+      store.markDeparting(code, "host-1");
+      advance(store, code, LEAVE_GRACE_MS * 2, ["host-1", "guest-1"]);
+
+      expect(ids(store, code)).toEqual(["host-1", "guest-1"]);
+    });
+
+    it("grants the full grace period even after a quiet spell", () => {
+      vi.useFakeTimers();
+      const { store, code } = roomWithGuest();
+
+      // No heartbeat for almost the whole timeout, then the page unloads:
+      // the beacon is itself a sign of life.
+      advance(store, code, STALE_AFTER_MS - 1_000, ["guest-1"]);
+      store.markDeparting(code, "host-1");
+      advance(store, code, LEAVE_GRACE_MS - 1_000, ["guest-1"]);
+
+      expect(ids(store, code)).toEqual(["host-1", "guest-1"]);
+    });
+
+    it("is a no-op for an unknown room or participant", () => {
+      const { store, code } = roomWithGuest();
+
+      store.markDeparting("NOPE12", "host-1");
+      store.markDeparting(code, "stranger");
+
+      expect(ids(store, code)).toEqual(["host-1", "guest-1"]);
     });
   });
 });

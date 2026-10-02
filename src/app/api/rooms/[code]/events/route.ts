@@ -1,8 +1,11 @@
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+import { cookies } from "next/headers";
+import { gameStateForViewer } from "@/lib/decisions-disruptions/redact";
 import { gameStore } from "@/lib/decisions-disruptions/store";
 import type { GameState } from "@/lib/decisions-disruptions/types";
+import { SSE_KEEPALIVE_MS } from "@/lib/rooms/constants";
 import { roomStore } from "@/lib/rooms/store";
 import type { Room } from "@/lib/rooms/types";
 
@@ -13,6 +16,11 @@ import type { Room } from "@/lib/rooms/types";
  * `RoomLobby`'s existing `setRoom(JSON.parse(event.data))` keeps working
  * unchanged (it just ignores the extra `game` key); only game-phase-aware
  * consumers read `.game`.
+ *
+ * `game` is tailored per connection: non-host viewers get the redacted
+ * state (no attacker names, no unnoticed reveal entries). Whether this
+ * viewer is the host is re-checked on every send, since the host can be
+ * reassigned mid-game.
  */
 type RoomEventPayload = Room & { game: GameState | null };
 
@@ -25,6 +33,15 @@ export async function GET(
   if (!room) {
     return new Response("Room not found", { status: 404 });
   }
+  const cookieStore = await cookies();
+  const participantId = cookieStore.get("dd_player_id")?.value;
+  // An open stream is proof of presence: connecting (e.g. right after a page
+  // reload) and every keep-alive re-confirm the participant, which clears a
+  // "departing" mark left by the unloading page's beacon.
+  const touch = () => {
+    if (participantId) roomStore.touchParticipant(code, participantId);
+  };
+  touch();
 
   const encoder = new TextEncoder();
   let unsubscribeRoom: (() => void) | undefined;
@@ -37,7 +54,12 @@ export async function GET(
       let latestGame = gameStore.getGame(code)?.state ?? null;
 
       const send = () => {
-        const payload: RoomEventPayload = { ...latestRoom, game: latestGame };
+        const isHost =
+          !!participantId && latestRoom.hostParticipantId === participantId;
+        const payload: RoomEventPayload = {
+          ...latestRoom,
+          game: latestGame && gameStateForViewer(latestGame, isHost),
+        };
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify(payload)}\n\n`),
         );
@@ -54,7 +76,8 @@ export async function GET(
       });
       keepAlive = setInterval(() => {
         controller.enqueue(encoder.encode(": ping\n\n"));
-      }, 15_000);
+        touch();
+      }, SSE_KEEPALIVE_MS);
     },
     cancel() {
       unsubscribeRoom?.();

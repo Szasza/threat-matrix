@@ -28,6 +28,7 @@ const scores: Record<Category, number> = {
 const revealHistory: RevealEntry[][] = [
   [
     {
+      visibleToPlayers: true,
       attackName: "Phishing email",
       stepName: "Initial access",
       countered: true,
@@ -36,6 +37,7 @@ const revealHistory: RevealEntry[][] = [
   ],
   [
     {
+      visibleToPlayers: true,
       attackName: "Phishing email",
       stepName: "Lateral movement",
       countered: true,
@@ -44,6 +46,7 @@ const revealHistory: RevealEntry[][] = [
   ],
   [
     {
+      visibleToPlayers: true,
       attackName: "Ransomware",
       stepName: "Encryption",
       countered: false,
@@ -52,6 +55,7 @@ const revealHistory: RevealEntry[][] = [
   ],
   [
     {
+      visibleToPlayers: true,
       attackName: "Ransomware",
       stepName: "Exfiltration",
       countered: false,
