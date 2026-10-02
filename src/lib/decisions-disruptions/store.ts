@@ -10,9 +10,18 @@ export interface GameRecord {
 
 export type CartAction = "add" | "remove";
 
+export type VoteAction = "vote" | "unvote";
+
 export type UpdateCartResult =
   | { ok: true; state: GameState }
   | { ok: false; reason: "not-found" | "not-in-round" | "unknown-defence" };
+
+export type UpdateVoteResult =
+  | { ok: true; state: GameState }
+  | {
+      ok: false;
+      reason: "not-found" | "not-in-round" | "unknown-defence" | "owned";
+    };
 
 export type EndRoundResult =
   | { ok: true; state: GameState; revealEntries: RevealEntry[] }
@@ -37,6 +46,17 @@ export interface GameStore {
     defenceName: string,
     action: CartAction,
   ): UpdateCartResult;
+  /**
+   * Non-host only (enforced by the caller, e.g. the `/game/vote` route).
+   * Like `updateCart`, voting twice or unvoting without a vote is a no-op
+   * success, so a double-click can't inflate the shared counter.
+   */
+  updateVote(
+    code: string,
+    participantId: string,
+    defenceName: string,
+    action: VoteAction,
+  ): UpdateVoteResult;
   endRound(code: string): EndRoundResult;
   subscribe(code: string, listener: (state: GameState) => void): () => void;
 }
@@ -49,6 +69,9 @@ function cloneState(state: GameState): GameState {
       round: owned.round,
     })),
     cart: state.cart.map((defence) => ({ ...defence })),
+    votes: Object.fromEntries(
+      Object.entries(state.votes).map(([name, voters]) => [name, [...voters]]),
+    ),
     revealHistory: state.revealHistory.map((round) =>
       round.map((entry) => ({ ...entry })),
     ),
@@ -61,6 +84,7 @@ function initialGameState(): GameState {
     round: 1,
     ownedDefences: [],
     cart: [],
+    votes: {},
     revealHistory: [],
   };
 }
@@ -133,6 +157,47 @@ export function createGameStore(): GameStore {
       record.state.cart = record.state.cart.filter((d) =>
         stillEligible.some((eligible) => eligible.name === d.name),
       );
+      // Same for votes: a re-hidden defence's card disappears from the shop,
+      // so its votes would otherwise linger invisibly until the round ends.
+      record.state.votes = Object.fromEntries(
+        Object.entries(record.state.votes).filter(([name]) =>
+          stillEligible.some((eligible) => eligible.name === name),
+        ),
+      );
+
+      emitUpdate(code, record.state);
+      return { ok: true, state: cloneState(record.state) };
+    },
+
+    updateVote(code, participantId, defenceName, action) {
+      const record = games.get(code);
+      if (!record) return { ok: false, reason: "not-found" };
+      if (record.state.phase !== "round") {
+        return { ok: false, reason: "not-in-round" };
+      }
+      if (!unlockedDefences(record.state).some((d) => d.name === defenceName)) {
+        return { ok: false, reason: "unknown-defence" };
+      }
+      if (
+        record.state.ownedDefences.some(
+          (owned) => owned.defence.name === defenceName,
+        )
+      ) {
+        return { ok: false, reason: "owned" };
+      }
+
+      const voters = record.state.votes[defenceName] ?? [];
+      const hasVoted = voters.includes(participantId);
+      if (action === "vote" && !hasVoted) {
+        record.state.votes[defenceName] = [...voters, participantId];
+      } else if (action === "unvote" && hasVoted) {
+        const remaining = voters.filter((id) => id !== participantId);
+        if (remaining.length > 0) {
+          record.state.votes[defenceName] = remaining;
+        } else {
+          delete record.state.votes[defenceName];
+        }
+      }
 
       emitUpdate(code, record.state);
       return { ok: true, state: cloneState(record.state) };

@@ -190,6 +190,7 @@ export function resolveRound(
     round: isFinalRound ? state.round : ((state.round + 1) as Round),
     ownedDefences,
     cart: [],
+    votes: {},
     revealHistory: [...state.revealHistory, revealEntries],
   };
 

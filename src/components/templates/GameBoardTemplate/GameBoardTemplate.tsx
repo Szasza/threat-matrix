@@ -7,18 +7,24 @@ import type { GameState } from "@/lib/decisions-disruptions/types";
 export interface GameBoardTemplateProps {
   game: GameState;
   isHost: boolean;
+  currentParticipantId: string;
   onAddToCart: (defenceName: string) => void | Promise<void>;
   onRemoveFromCart: (defenceName: string) => void | Promise<void>;
   onEndRound: () => void | Promise<void>;
+  onVote: (defenceName: string) => void | Promise<void>;
+  onUnvote: (defenceName: string) => void | Promise<void>;
   endRoundError?: string;
 }
 
 export function GameBoardTemplate({
   game,
   isHost,
+  currentParticipantId,
   onAddToCart,
   onRemoveFromCart,
   onEndRound,
+  onVote,
+  onUnvote,
   endRoundError,
 }: GameBoardTemplateProps): JSX.Element {
   const pastRounds = game.revealHistory
@@ -36,9 +42,12 @@ export function GameBoardTemplate({
       <DefenceShop
         game={game}
         isHost={isHost}
+        currentParticipantId={currentParticipantId}
         onAddToCart={onAddToCart}
         onRemoveFromCart={onRemoveFromCart}
         onEndRound={onEndRound}
+        onVote={onVote}
+        onUnvote={onUnvote}
         endRoundError={endRoundError}
       />
 

@@ -16,6 +16,9 @@ const meta = {
     onAddToCart: fn(),
     onRemoveFromCart: fn(),
     onEndRound: fn(),
+    onVote: fn(),
+    onUnvote: fn(),
+    currentParticipantId: "player-1",
   },
 } satisfies Meta<typeof GameBoardTemplate>;
 
@@ -50,6 +53,7 @@ export const RoundOneNoHistory: Story = {
       round: 1,
       ownedDefences: [],
       cart: [],
+      votes: {},
       revealHistory: [],
     },
     isHost: true,
@@ -69,6 +73,7 @@ export const RoundThreeWithHistory: Story = {
       round: 3,
       ownedDefences: [{ defence: firewallOffice, round: 1 }],
       cart: [],
+      votes: {},
       revealHistory: [round1Entries, round2Entries],
     } satisfies GameState,
     isHost: true,

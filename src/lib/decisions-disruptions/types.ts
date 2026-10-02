@@ -57,6 +57,13 @@ export interface GameState {
   round: Round;
   ownedDefences: OwnedDefence[];
   cart: Defence[];
+  /**
+   * Defence name -> ids of the (non-host) participants voting for it this
+   * round. Stored per voter, not as a bare count, so vote/unvote is
+   * idempotent and each client can tell whether it has voted; the shared
+   * counter is the array's length. Reset when a round ends.
+   */
+  votes: Record<string, string[]>;
   /** revealHistory[r - 1] holds the RevealEntry[] resolved at the end of round r. */
   revealHistory: RevealEntry[][];
 }
