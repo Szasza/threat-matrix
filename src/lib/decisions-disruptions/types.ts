@@ -10,6 +10,8 @@ export interface Defence {
   name: string;
   cost: number;
   category: Category;
+  /** Card text shown to players in the shop, from the printed game cards. */
+  description: string;
   /** Hidden from the shop until "Asset audit" has been bought. */
   hidden: boolean;
 }
