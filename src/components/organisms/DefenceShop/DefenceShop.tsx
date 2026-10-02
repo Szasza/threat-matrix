@@ -10,9 +10,13 @@ export interface DefenceShopProps {
   game: GameState;
   /** Gates both the cart's buy/unbuy controls and the "End Round" button — only the game master edits the shared cart or advances the round. */
   isHost: boolean;
+  /** Used to tell which cards this (non-host) player has voted for. */
+  currentParticipantId: string;
   onAddToCart: (defenceName: string) => void | Promise<void>;
   onRemoveFromCart: (defenceName: string) => void | Promise<void>;
   onEndRound: () => void | Promise<void>;
+  onVote: (defenceName: string) => void | Promise<void>;
+  onUnvote: (defenceName: string) => void | Promise<void>;
   endRoundError?: string;
 }
 
@@ -29,9 +33,12 @@ function cardStateFor(game: GameState, defenceName: string): DefenceCardState {
 export function DefenceShop({
   game,
   isHost,
+  currentParticipantId,
   onAddToCart,
   onRemoveFromCart,
   onEndRound,
+  onVote,
+  onUnvote,
   endRoundError,
 }: DefenceShopProps): JSX.Element {
   const visible = visibleDefences(game);
@@ -61,16 +68,26 @@ export function DefenceShop({
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {visible.map((defence) => (
-          <DefenceCard
-            key={defence.name}
-            defence={defence}
-            state={cardStateFor(game, defence.name)}
-            canEdit={isHost}
-            onAdd={() => onAddToCart(defence.name)}
-            onRemove={() => onRemoveFromCart(defence.name)}
-          />
-        ))}
+        {visible.map((defence) => {
+          const voters = game.votes[defence.name] ?? [];
+          const hasVoted = voters.includes(currentParticipantId);
+          return (
+            <DefenceCard
+              key={defence.name}
+              defence={defence}
+              state={cardStateFor(game, defence.name)}
+              canEdit={isHost}
+              onAdd={() => onAddToCart(defence.name)}
+              onRemove={() => onRemoveFromCart(defence.name)}
+              votes={voters.length}
+              canVote={!isHost}
+              hasVoted={hasVoted}
+              onToggleVote={() =>
+                hasVoted ? onUnvote(defence.name) : onVote(defence.name)
+              }
+            />
+          );
+        })}
       </div>
 
       {isHost && (

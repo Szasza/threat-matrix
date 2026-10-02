@@ -60,6 +60,7 @@ const setupGameState: GameState = {
   round: 1,
   ownedDefences: [],
   cart: [],
+  votes: {},
   revealHistory: [],
 };
 
@@ -71,6 +72,7 @@ const roundGameState: GameState = {
   round: 1,
   ownedDefences: [],
   cart: [],
+  votes: {},
   revealHistory: [],
 };
 
@@ -79,6 +81,7 @@ const roundGameStateWithCartItem: GameState = {
   round: 1,
   ownedDefences: [],
   cart: [firewallOffice],
+  votes: {},
   revealHistory: [],
 };
 
@@ -87,6 +90,7 @@ const finishedGameState: GameState = {
   round: 4,
   ownedDefences: [{ defence: firewallOffice, round: 1 }],
   cart: [],
+  votes: {},
   revealHistory: [[], [], [], []],
 };
 
@@ -505,5 +509,68 @@ export const LobbyFinishedPhase: Story = {
     await expect(canvas.getByText("Game Over")).toBeVisible();
     // Firewall office bought round 1 -> 4 points in cyber_defence.
     await expect(canvas.getByText("4 / 16")).toBeVisible();
+  },
+};
+
+export const RoundPhasePlayerVotes: Story = {
+  args: {
+    mode: "lobby",
+    game: sampleGame,
+    initialRoom: {
+      ...sampleRoom,
+      participants: [
+        ...sampleRoom.participants,
+        {
+          id: "participant-2",
+          displayName: "Grace",
+          joinedAt: 2000,
+          lastSeenAt: 2000,
+        },
+      ],
+    },
+    initialGame: { ...roundGameState, votes: { Antivirus: ["participant-2"] } },
+    roomCode: sampleRoom.code,
+    currentParticipantId: "participant-2",
+    shareUrl: "https://example.com/room/AB12CD",
+    onLeave: fn(),
+    onRemoved: fn(),
+    onStartGame: fn(),
+  },
+  beforeEach: () => {
+    FakeEventSource.instances = [];
+    globalThis.EventSource =
+      FakeEventSource as unknown as typeof globalThis.EventSource;
+    globalThis.fetch = fn().mockResolvedValue({
+      status: 204,
+      ok: true,
+      json: async () => ({}),
+    }) as never;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await userEvent.click(
+      canvas.getByRole("button", { name: /^Vote for Firewall office/ }),
+    );
+    await expect(globalThis.fetch).toHaveBeenCalledWith(
+      `/api/rooms/${sampleRoom.code}/game/vote`,
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          defenceName: firewallOffice.name,
+          action: "vote",
+        }),
+      }),
+    );
+
+    await userEvent.click(
+      canvas.getByRole("button", { name: /^Vote for Antivirus/ }),
+    );
+    await expect(globalThis.fetch).toHaveBeenCalledWith(
+      `/api/rooms/${sampleRoom.code}/game/vote`,
+      expect.objectContaining({
+        body: JSON.stringify({ defenceName: "Antivirus", action: "unvote" }),
+      }),
+    );
   },
 };

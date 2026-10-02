@@ -16,6 +16,9 @@ const meta = {
     onAddToCart: fn(),
     onRemoveFromCart: fn(),
     onEndRound: fn(),
+    onVote: fn(),
+    onUnvote: fn(),
+    currentParticipantId: "player-1",
   },
 } satisfies Meta<typeof DefenceShop>;
 
@@ -38,6 +41,7 @@ const midGameState: GameState = {
   round: 2,
   ownedDefences: [{ defence: firewallOffice, round: 1 }],
   cart: [cctvOffice],
+  votes: {},
   revealHistory: [[]],
 };
 
@@ -131,6 +135,7 @@ export const OverBudgetCart: Story = {
       round: 1,
       ownedDefences: [],
       cart: [cctvOffice, cctvPlant, antivirus], // 130k > the 100k round-1 budget
+      votes: {},
       revealHistory: [],
     },
     isHost: true,
@@ -154,6 +159,7 @@ export const AssetAuditNotBought: Story = {
       round: 1,
       ownedDefences: [],
       cart: [],
+      votes: {},
       revealHistory: [],
     },
     isHost: false,
@@ -172,6 +178,7 @@ export const AssetAuditBought: Story = {
       round: 1,
       ownedDefences: [{ defence: assetAudit, round: 1 }],
       cart: [],
+      votes: {},
       revealHistory: [],
     },
     isHost: false,
@@ -180,5 +187,58 @@ export const AssetAuditBought: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Upgrade PC")).toBeVisible();
     await expect(canvas.getByText("Encryption PC")).toBeVisible();
+  },
+};
+
+const votingState: GameState = {
+  ...midGameState,
+  votes: {
+    Antivirus: ["player-1", "player-2"],
+    "CCTV plant": ["player-2"],
+  },
+};
+
+export const PlayerVotes: Story = {
+  args: {
+    game: votingState,
+    isHost: false,
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    // Already voted for Antivirus (player-1 is the current participant).
+    const antivirusCard = canvas.getByRole("button", {
+      name: "Vote for Antivirus, 2 votes",
+    });
+    await expect(antivirusCard).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(antivirusCard);
+    await expect(args.onUnvote).toHaveBeenCalledWith("Antivirus");
+
+    const cctvCard = canvas.getByRole("button", {
+      name: "Vote for CCTV plant, 1 vote",
+    });
+    await expect(cctvCard).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(cctvCard);
+    await expect(args.onVote).toHaveBeenCalledWith("CCTV plant");
+
+    // The owned card isn't votable.
+    expect(
+      canvas.queryByRole("button", { name: /Vote for Firewall office/ }),
+    ).not.toBeInTheDocument();
+  },
+};
+
+export const HostSeesVotes: Story = {
+  args: {
+    game: votingState,
+    isHost: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText("2 votes")).toBeVisible();
+    await expect(canvas.getByText("1 vote")).toBeVisible();
+    expect(
+      canvas.queryByRole("button", { name: /^Vote for/ }),
+    ).not.toBeInTheDocument();
   },
 };

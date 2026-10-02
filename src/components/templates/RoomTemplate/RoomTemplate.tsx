@@ -77,10 +77,12 @@ function GamePhaseView({
   game,
   isHost,
   roomCode,
+  currentParticipantId,
 }: {
   game: GameState;
   isHost: boolean;
   roomCode: string;
+  currentParticipantId: string;
 }): JSX.Element {
   const [endRoundError, setEndRoundError] = useState<string | undefined>(
     undefined,
@@ -99,6 +101,14 @@ function GamePhaseView({
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ defenceName, action: "remove" }),
+    });
+  };
+
+  const handleVote = async (defenceName: string, action: "vote" | "unvote") => {
+    await fetch(`/api/rooms/${roomCode}/game/vote`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ defenceName, action }),
     });
   };
 
@@ -129,9 +139,12 @@ function GamePhaseView({
     <GameBoardTemplate
       game={game}
       isHost={isHost}
+      currentParticipantId={currentParticipantId}
       onAddToCart={handleAddToCart}
       onRemoveFromCart={handleRemoveFromCart}
       onEndRound={handleEndRound}
+      onVote={(defenceName) => handleVote(defenceName, "vote")}
+      onUnvote={(defenceName) => handleVote(defenceName, "unvote")}
       endRoundError={endRoundError}
     />
   );
@@ -217,7 +230,14 @@ function RoomGameRouter(
     );
   }
 
-  return <GamePhaseView game={gameState} isHost={isHost} roomCode={roomCode} />;
+  return (
+    <GamePhaseView
+      game={gameState}
+      isHost={isHost}
+      roomCode={roomCode}
+      currentParticipantId={currentParticipantId}
+    />
+  );
 }
 
 export function RoomTemplate(props: RoomTemplateProps): JSX.Element {

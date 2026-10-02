@@ -26,6 +26,7 @@ function emptyState(round: Round = 1): GameState {
     round,
     ownedDefences: [],
     cart: [],
+    votes: {},
     revealHistory: [],
   };
 }

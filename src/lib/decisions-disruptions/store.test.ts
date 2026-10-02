@@ -14,6 +14,7 @@ describe("createGameStore", () => {
       round: 1,
       ownedDefences: [],
       cart: [],
+      votes: {},
       revealHistory: [],
     });
   });
@@ -175,6 +176,132 @@ describe("createGameStore", () => {
     });
   });
 
+  describe("updateVote", () => {
+    function startedStore() {
+      const store = createGameStore();
+      store.createGame(CODE);
+      store.startGame(CODE, settings);
+      return store;
+    }
+
+    function votesFor(
+      store: ReturnType<typeof createGameStore>,
+      name: string,
+    ): string[] | undefined {
+      return store.getGame(CODE)?.state.votes[name];
+    }
+
+    it("counts each player's vote once", () => {
+      const store = startedStore();
+      store.updateVote(CODE, "alice", "Antivirus", "vote");
+      const result = store.updateVote(CODE, "bob", "Antivirus", "vote");
+
+      expect(result.ok).toBe(true);
+      expect(votesFor(store, "Antivirus")).toEqual(["alice", "bob"]);
+    });
+
+    it("is idempotent when a player votes twice", () => {
+      const store = startedStore();
+      store.updateVote(CODE, "alice", "Antivirus", "vote");
+      store.updateVote(CODE, "alice", "Antivirus", "vote");
+
+      expect(votesFor(store, "Antivirus")).toEqual(["alice"]);
+    });
+
+    it("unvoting removes only that player's vote", () => {
+      const store = startedStore();
+      store.updateVote(CODE, "alice", "Antivirus", "vote");
+      store.updateVote(CODE, "bob", "Antivirus", "vote");
+      store.updateVote(CODE, "alice", "Antivirus", "unvote");
+
+      expect(votesFor(store, "Antivirus")).toEqual(["bob"]);
+    });
+
+    it("drops the defence's entry once its last vote is withdrawn", () => {
+      const store = startedStore();
+      store.updateVote(CODE, "alice", "Antivirus", "vote");
+      store.updateVote(CODE, "alice", "Antivirus", "unvote");
+
+      expect(store.getGame(CODE)?.state.votes).toEqual({});
+    });
+
+    it("is idempotent when unvoting without a vote", () => {
+      const store = startedStore();
+      const result = store.updateVote(CODE, "alice", "Antivirus", "unvote");
+
+      expect(result.ok).toBe(true);
+      expect(store.getGame(CODE)?.state.votes).toEqual({});
+    });
+
+    it("rejects a hidden defence before Asset audit has been bought", () => {
+      const store = startedStore();
+      expect(store.updateVote(CODE, "alice", "Upgrade PC", "vote")).toEqual({
+        ok: false,
+        reason: "unknown-defence",
+      });
+    });
+
+    it("rejects votes on an already-owned defence", () => {
+      const store = startedStore();
+      store.updateCart(CODE, "Antivirus", "add");
+      store.endRound(CODE);
+
+      expect(store.updateVote(CODE, "alice", "Antivirus", "vote")).toEqual({
+        ok: false,
+        reason: "owned",
+      });
+    });
+
+    it("rejects votes before the game has started", () => {
+      const store = createGameStore();
+      store.createGame(CODE);
+
+      expect(store.updateVote(CODE, "alice", "Antivirus", "vote")).toEqual({
+        ok: false,
+        reason: "not-in-round",
+      });
+    });
+
+    it("rejects votes for an unknown room code", () => {
+      const store = createGameStore();
+      expect(store.updateVote("NOPE12", "alice", "Antivirus", "vote")).toEqual({
+        ok: false,
+        reason: "not-found",
+      });
+    });
+
+    it("drops votes on a hidden defence once the Asset audit unlocking it leaves the cart", () => {
+      const store = startedStore();
+      store.updateCart(CODE, "Asset audit", "add");
+      store.updateVote(CODE, "alice", "Upgrade PC", "vote");
+      store.updateVote(CODE, "alice", "Antivirus", "vote");
+
+      store.updateCart(CODE, "Asset audit", "remove");
+
+      expect(store.getGame(CODE)?.state.votes).toEqual({
+        Antivirus: ["alice"],
+      });
+    });
+
+    it("resets all votes when the round ends", () => {
+      const store = startedStore();
+      store.updateVote(CODE, "alice", "Antivirus", "vote");
+
+      store.endRound(CODE);
+
+      expect(store.getGame(CODE)?.state.votes).toEqual({});
+    });
+
+    it("getGame returns a copy of the votes, not the live record", () => {
+      const store = startedStore();
+      store.updateVote(CODE, "alice", "Antivirus", "vote");
+
+      store.getGame(CODE)?.state.votes.Antivirus.push("mallory");
+
+      expect(votesFor(store, "Antivirus")).toEqual(["alice"]);
+    });
+  });
+
   describe("endRound", () => {
     function startedStore() {
       const store = createGameStore();
@@ -263,6 +390,9 @@ describe("createGameStore", () => {
 
       store.endRound(CODE);
       expect(listener).toHaveBeenCalledTimes(2);
+
+      store.updateVote(CODE, "alice", "Antivirus", "vote");
+      expect(listener).toHaveBeenCalledTimes(3);
     });
 
     it("stops notifying once unsubscribed", () => {
