@@ -207,20 +207,19 @@ export function createRoomStore(): RoomStore {
   return store;
 }
 
-// The globalThis cache below exists ONLY to survive Next.js dev-server HMR
-// re-evaluation of this module (otherwise every save during `next dev` would
-// re-run createRoomStore(), wiping all rooms and orphaning the previous
-// sweep interval). It does NOT make this store safe across multiple
-// processes/replicas — this store is explicitly an in-memory,
-// single-process, dev-only design, which is an accepted, deliberate
-// limitation of this feature rather than something to fix here.
+// The globalThis cache below is what makes this a single store per process.
+// It is load-bearing in production, not just a dev convenience: Next.js
+// bundles server code into separate module graphs (pages/Server Actions vs
+// Route Handlers), so without it `/room/[code]` and `createRoomAction` would
+// see one store while `/api/rooms/[code]/heartbeat` etc. see another, empty
+// one — every heartbeat would 410 and evict the participant. It also survives
+// dev-server HMR re-evaluation. It does NOT make this store safe across
+// multiple processes/replicas — this store is explicitly an in-memory,
+// single-process design, which is an accepted, deliberate limitation.
 declare global {
   var __ddRoomStore: RoomStore | undefined;
 }
 
-const store = globalThis.__ddRoomStore ?? createRoomStore();
-if (process.env.NODE_ENV !== "production") {
-  globalThis.__ddRoomStore = store;
-}
+globalThis.__ddRoomStore ??= createRoomStore();
 
-export const roomStore = store;
+export const roomStore = globalThis.__ddRoomStore;

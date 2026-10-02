@@ -297,13 +297,16 @@ describe("gameStore singleton caching", () => {
     expect(globalThis.__ddGameStore).toBe(gameStore);
   });
 
-  it("does not cache the store on globalThis in production", async () => {
+  it("shares one store across module evaluations in production", async () => {
     vi.resetModules();
     globalThis.__ddGameStore = undefined;
     vi.stubEnv("NODE_ENV", "production");
 
-    await import("./store");
+    const { gameStore: first } = await import("./store");
+    vi.resetModules();
+    const { gameStore: second } = await import("./store");
 
-    expect(globalThis.__ddGameStore).toBeUndefined();
+    expect(globalThis.__ddGameStore).toBe(first);
+    expect(second).toBe(first);
   });
 });

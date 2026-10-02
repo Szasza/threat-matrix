@@ -347,17 +347,21 @@ describe("roomStore singleton caching", () => {
     vi.resetModules();
   });
 
-  it("does not cache the store on globalThis in production", async () => {
+  it("shares one store across module evaluations in production", async () => {
     vi.resetModules();
     globalThis.__ddRoomStore = undefined;
     vi.stubEnv("NODE_ENV", "production");
 
-    await import("@/lib/rooms/store");
+    const { roomStore: first } = await import("@/lib/rooms/store");
+    // Next.js evaluates this module separately for pages/Server Actions and
+    // Route Handlers in a production build; a fresh evaluation must reuse
+    // the same store, or the heartbeat route can't see rooms created by
+    // `createRoomAction` and evicts every participant.
+    vi.resetModules();
+    const { roomStore: second } = await import("@/lib/rooms/store");
 
-    // In production, each fresh module evaluation must build its own store
-    // rather than caching it on globalThis (that cache exists only to
-    // survive Next.js dev-server HMR re-evaluation of this module).
-    expect(globalThis.__ddRoomStore).toBeUndefined();
+    expect(globalThis.__ddRoomStore).toBe(first);
+    expect(second).toBe(first);
   });
 
   it("caches the store on globalThis outside production", async () => {

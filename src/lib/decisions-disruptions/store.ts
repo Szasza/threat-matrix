@@ -173,15 +173,13 @@ export function createGameStore(): GameStore {
 }
 
 // See the identical comment in `src/lib/rooms/store.ts`: this globalThis
-// cache exists only to survive Next.js dev-server HMR re-evaluation of this
-// module, and is not a multi-process-safe design.
+// cache keeps one store per process — required in production so Server
+// Actions, pages and Route Handlers share state — and is not a
+// multi-process-safe design.
 declare global {
   var __ddGameStore: GameStore | undefined;
 }
 
-const store = globalThis.__ddGameStore ?? createGameStore();
-if (process.env.NODE_ENV !== "production") {
-  globalThis.__ddGameStore = store;
-}
+globalThis.__ddGameStore ??= createGameStore();
 
-export const gameStore = store;
+export const gameStore = globalThis.__ddGameStore;
