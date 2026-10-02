@@ -4,6 +4,7 @@ import type { Defence, GameState } from "./types";
  * The 15-defence catalog, transcribed from the reference `debrief.js`
  * (`defences` array). The 5 marked `hidden` are unlocked once "Asset audit"
  * has been bought (in any round) — see `unlockedDefences` in `engine.server.ts`.
+ * Descriptions are the flavour text from the printed D-D game cards.
  * Safe for client import: costs/categories/names are not secret.
  */
 export const DEFENCES: readonly Defence[] = [
@@ -11,67 +12,122 @@ export const DEFENCES: readonly Defence[] = [
     name: "Firewall office",
     cost: 30,
     category: "cyber_defence",
+    description:
+      "A software and hardware solution that monitors and filters unauthorised traffic coming from the Internet to the office network.",
     hidden: false,
   },
   {
     name: "Firewall plant",
     cost: 30,
     category: "cyber_defence",
+    description:
+      "A software and hardware solution that monitors and filters unauthorised traffic coming from the Internet to the plant network.",
     hidden: false,
   },
   {
     name: "CCTV office",
     cost: 50,
     category: "physical_defence",
+    description:
+      "Surveillance camera and alarms that will automatically warn security guards of an intrusion.",
     hidden: false,
   },
-  { name: "CCTV plant", cost: 50, category: "physical_defence", hidden: false },
+  {
+    name: "CCTV plant",
+    cost: 50,
+    category: "physical_defence",
+    description:
+      "Surveillance camera and alarms that will automatically warn security guards of an intrusion.",
+    hidden: false,
+  },
   {
     name: "Monitoring office",
     cost: 50,
     category: "advanced_cyber_defence",
+    description:
+      "This big, shiny piece of bleeding-edge technology is quite expensive but also very effective.",
     hidden: false,
   },
   {
     name: "Monitoring plant",
     cost: 50,
     category: "advanced_cyber_defence",
+    description:
+      "This big, shiny piece of bleeding-edge technology is quite expensive but also very effective.",
     hidden: false,
   },
-  { name: "Antivirus", cost: 30, category: "cyber_defence", hidden: false },
+  {
+    name: "Antivirus",
+    cost: 30,
+    category: "cyber_defence",
+    description:
+      "A recent, decent professional anti-virus from a reputable provider.",
+    hidden: false,
+  },
   {
     name: "Security training",
     cost: 30,
     category: "human_factors",
+    description:
+      "A quick yet thorough one-day formation on security essentials for all employees.",
     hidden: false,
   },
   {
     name: "Asset audit",
     cost: 30,
     category: "intelligence_gathering",
+    description:
+      "The entire infrastructure is thoroughly assessed for vulnerabilities.",
     hidden: false,
   },
   {
     name: "Threat assessment",
     cost: 20,
     category: "intelligence_gathering",
+    description:
+      "Reveals existing threats to the company, the attack vectors they use, and the possible effects of their attacks.",
     hidden: false,
   },
-  { name: "Upgrade PC", cost: 30, category: "cyber_defence", hidden: true },
+  {
+    name: "Upgrade PC",
+    cost: 30,
+    category: "cyber_defence",
+    description:
+      "A brand new, up-to-date OS and software suite for all Personal Computers.",
+    hidden: true,
+  },
   {
     name: "Upgrade server & DB",
     cost: 30,
     category: "cyber_defence",
+    description:
+      "A brand new, up-to-date OS, web server and database management system.",
     hidden: true,
   },
   {
     name: "Upgrade controller",
     cost: 30,
     category: "cyber_defence",
+    description:
+      "Software patches and an update to the firmware of the SCADA controller",
     hidden: true,
   },
-  { name: "Encryption DB", cost: 20, category: "data_defence", hidden: true },
-  { name: "Encryption PC", cost: 20, category: "data_defence", hidden: true },
+  {
+    name: "Encryption DB",
+    cost: 20,
+    category: "data_defence",
+    description:
+      "Military-grade, proven encryption mechanism for all databases.",
+    hidden: true,
+  },
+  {
+    name: "Encryption PC",
+    cost: 20,
+    category: "data_defence",
+    description:
+      "Military-grade, proven encryption mechanism for the hard drives of all PCs.",
+    hidden: true,
+  },
 ] as const;
 
 export function getDefenceByName(name: string): Defence | undefined {

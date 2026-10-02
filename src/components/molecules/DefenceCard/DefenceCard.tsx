@@ -43,6 +43,7 @@ export function DefenceCard({
         <span className="text-sm text-slate-400">{defence.cost}k</span>
       </div>
       <CategoryBadge category={defence.category} />
+      <p className="text-sm text-slate-400">{defence.description}</p>
       {state === "available" && canEdit && (
         <Button onClick={onAdd}>Add to cart</Button>
       )}

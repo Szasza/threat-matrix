@@ -14,6 +14,9 @@ const meta = {
 } satisfies Meta<typeof DefenceCard>;
 
 export default meta;
+
+const FIREWALL_DESCRIPTION =
+  "A software and hardware solution that monitors and filters unauthorised traffic.";
 type Story = StoryObj<typeof meta>;
 
 export const Available: Story = {
@@ -22,6 +25,7 @@ export const Available: Story = {
       name: "Firewall",
       cost: 20,
       category: "cyber_defence",
+      description: FIREWALL_DESCRIPTION,
       hidden: false,
     },
     state: "available",
@@ -31,6 +35,7 @@ export const Available: Story = {
     const button = canvas.getByRole("button", { name: "Add to cart" });
     await userEvent.click(button);
     await expect(args.onAdd).toHaveBeenCalledTimes(1);
+    await expect(canvas.getByText(FIREWALL_DESCRIPTION)).toBeVisible();
     expect(canvas.queryByText("Remove")).not.toBeInTheDocument();
     expect(canvas.queryByText("Owned")).not.toBeInTheDocument();
   },
@@ -42,6 +47,7 @@ export const InCart: Story = {
       name: "Firewall",
       cost: 20,
       category: "cyber_defence",
+      description: FIREWALL_DESCRIPTION,
       hidden: false,
     },
     state: "in-cart",
@@ -61,6 +67,7 @@ export const Owned: Story = {
       name: "Firewall",
       cost: 20,
       category: "cyber_defence",
+      description: FIREWALL_DESCRIPTION,
       hidden: false,
     },
     state: "owned",
@@ -68,6 +75,7 @@ export const Owned: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Owned")).toBeVisible();
+    await expect(canvas.getByText(FIREWALL_DESCRIPTION)).toBeVisible();
     await expect(canvas.queryAllByRole("button")).toHaveLength(0);
   },
 };
@@ -78,6 +86,7 @@ export const AvailableReadOnly: Story = {
       name: "Firewall",
       cost: 20,
       category: "cyber_defence",
+      description: FIREWALL_DESCRIPTION,
       hidden: false,
     },
     state: "available",
@@ -86,6 +95,7 @@ export const AvailableReadOnly: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText("Firewall")).toBeVisible();
+    await expect(canvas.getByText(FIREWALL_DESCRIPTION)).toBeVisible();
     expect(canvas.queryByRole("button")).not.toBeInTheDocument();
   },
 };
@@ -96,6 +106,7 @@ export const InCartReadOnly: Story = {
       name: "Firewall",
       cost: 20,
       category: "cyber_defence",
+      description: FIREWALL_DESCRIPTION,
       hidden: false,
     },
     state: "in-cart",
@@ -114,6 +125,8 @@ export const HiddenDefenceStillRendersWhenPassedExplicitly: Story = {
       name: "Upgrade PC",
       cost: 30,
       category: "cyber_defence",
+      description:
+        "A brand new, up-to-date OS and software suite for all Personal Computers.",
       hidden: true,
     },
     state: "available",

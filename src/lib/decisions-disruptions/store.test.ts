@@ -27,6 +27,7 @@ describe("createGameStore", () => {
       name: "Firewall office",
       cost: 30,
       category: "cyber_defence",
+      description: "",
       hidden: false,
     });
 
