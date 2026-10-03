@@ -1,3 +1,9 @@
+## [0.7.0](https://github.com/Szasza/threat-matrix/compare/v0.6.1...v0.7.0) (2026-10-03)
+
+### Features
+
+* card ordering ([#30](https://github.com/Szasza/threat-matrix/issues/30)) ([72e39fa](https://github.com/Szasza/threat-matrix/commit/72e39faa9067d8d8be32a371a4ba7e0e8d10df59))
+
 ## [0.6.1](https://github.com/Szasza/threat-matrix/compare/v0.6.0...v0.6.1) (2026-10-03)
 
 ### Bug Fixes
