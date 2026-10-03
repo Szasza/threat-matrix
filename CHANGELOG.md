@@ -1,3 +1,9 @@
+## [0.6.1](https://github.com/Szasza/threat-matrix/compare/v0.6.0...v0.6.1) (2026-10-03)
+
+### Bug Fixes
+
+* button and vote counter alignment ([#29](https://github.com/Szasza/threat-matrix/issues/29)) ([bb77fed](https://github.com/Szasza/threat-matrix/commit/bb77feddd999ad3a29675e32ef0a682fb427930a))
+
 ## [0.6.0](https://github.com/Szasza/threat-matrix/compare/v0.5.0...v0.6.0) (2026-10-02)
 
 ### Features
