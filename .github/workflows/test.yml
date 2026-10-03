@@ -4,6 +4,24 @@ on:
   pull_request:
 
 jobs:
+  checks:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+
+      # Dev-only tooling (e.g. semantic-release's bundled npm) is excluded:
+      # it never ships, and its advisories often have no upstream fix yet.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
   test:
     runs-on: ubuntu-latest
     permissions:

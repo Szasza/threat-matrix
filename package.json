@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.12",
-    "@chromatic-com/storybook": "latest",
+    "@chromatic-com/storybook": "^5.4.0",
     "@commitlint/cli": "^21.2.2",
     "@commitlint/config-conventional": "^21.2.2",
     "@semantic-release/changelog": "^7.0.0",
@@ -47,7 +47,7 @@
     "conventional-changelog": "^7.2.1",
     "conventional-changelog-conventionalcommits": "^9.3.1",
     "husky": "^9.1.7",
-    "playwright": "latest",
+    "playwright": "^1.63.0",
     "semantic-release": "^25.0.9",
     "storybook": "^10.6.0",
     "tailwindcss": "^4",
