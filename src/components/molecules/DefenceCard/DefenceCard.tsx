@@ -86,7 +86,7 @@ export function DefenceCard({
     </>
   );
 
-  // Game master: votes sit between the description and the cart controls.
+  // Game master: votes and cart controls sit together at the card bottom.
   if (canEdit) {
     return (
       <div
@@ -98,23 +98,28 @@ export function DefenceCard({
         }`}
       >
         {body}
-        {!isOwned && (
-          <p className="text-xs font-medium text-slate-300">
-            {formatVotes(votes)}
-          </p>
-        )}
-        {state === "available" && <Button onClick={onAdd}>Add to cart</Button>}
-        {state === "in-cart" && (
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-medium text-sky-400">In cart</span>
-            <Button variant="secondary" onClick={onRemove}>
-              Remove
-            </Button>
-          </div>
-        )}
-        {isOwned && (
-          <span className="text-xs font-medium text-slate-400">Owned</span>
-        )}
+        {/* Pinned to the card bottom so votes and controls line up across a grid row. */}
+        <div className="mt-auto flex flex-col gap-3">
+          {!isOwned && (
+            <p className="text-xs font-medium text-slate-300">
+              {formatVotes(votes)}
+            </p>
+          )}
+          {state === "available" && (
+            <Button onClick={onAdd}>Add to cart</Button>
+          )}
+          {state === "in-cart" && (
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-xs font-medium text-sky-400">In cart</span>
+              <Button variant="secondary" onClick={onRemove}>
+                Remove
+              </Button>
+            </div>
+          )}
+          {isOwned && (
+            <span className="text-xs font-medium text-slate-400">Owned</span>
+          )}
+        </div>
       </div>
     );
   }
