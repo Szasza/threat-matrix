@@ -153,3 +153,23 @@ export function visibleDefences(state: {
     state.cart.some((defence) => defence.name === "Asset audit");
   return DEFENCES.filter((defence) => !defence.hidden || assetAuditBought);
 }
+
+/**
+ * `visibleDefences` in shop display order: everything not yet bought first,
+ * then the defences bought in earlier rounds. Catalog order is kept within
+ * each group, and the Asset-audit-gated defences sit at the end of the
+ * catalog, so once unlocked they land after the other unbought cards but
+ * before any bought ones. Cart items aren't bought yet, so cards only move
+ * when a round ends and the cart is committed to `ownedDefences`.
+ */
+export function shopDefences(state: {
+  ownedDefences: readonly GameState["ownedDefences"][number][];
+  cart: readonly Defence[];
+}): Defence[] {
+  const owned = new Set(state.ownedDefences.map((o) => o.defence.name));
+  const visible = visibleDefences(state);
+  return [
+    ...visible.filter((defence) => !owned.has(defence.name)),
+    ...visible.filter((defence) => owned.has(defence.name)),
+  ];
+}
