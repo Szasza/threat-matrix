@@ -14,8 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Threat Matrix",
-  description:
-    "A digital hub for security games.",
+  description: "A digital hub for security games.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

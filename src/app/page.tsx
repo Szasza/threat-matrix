@@ -11,7 +11,8 @@ export default function Home() {
           Turn complex security challenges into gamified experiences.
         </h1>
         <p className="mt-5 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">
-          A digital hub for security, where you can explore, play, and learn from a variety of security-focused games.
+          A digital hub for security, where you can explore, play, and learn
+          from a variety of security-focused games.
         </p>
         <div className="mt-8 flex flex-col gap-4 sm:flex-row">
           <Link
