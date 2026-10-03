@@ -3,7 +3,7 @@ import { Button } from "@/components/atoms/Button/Button";
 import { ProgressBar } from "@/components/atoms/ProgressBar/ProgressBar";
 import type { DefenceCardState } from "@/components/molecules/DefenceCard/DefenceCard";
 import { DefenceCard } from "@/components/molecules/DefenceCard/DefenceCard";
-import { visibleDefences } from "@/lib/decisions-disruptions/defences";
+import { shopDefences } from "@/lib/decisions-disruptions/defences";
 import type { GameState } from "@/lib/decisions-disruptions/types";
 
 export interface DefenceShopProps {
@@ -41,7 +41,7 @@ export function DefenceShop({
   onUnvote,
   endRoundError,
 }: DefenceShopProps): JSX.Element {
-  const visible = visibleDefences(game);
+  const visible = shopDefences(game);
   const allowance = 100 * game.round;
   const spent = game.ownedDefences.reduce(
     (sum, owned) => sum + owned.defence.cost,
