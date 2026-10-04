@@ -15,7 +15,19 @@ jobs:
           node-version: 24
       - run: npm ci
       - name: Lint
-        run: npm run lint
+        run: npm run lint -- --error-on-warnings
+
+      # Biome exits successfully on info-level diagnostics (e.g. an outdated
+      # config schema or a deprecated option), so read the count from the
+      # JSON summary instead.
+      - name: Fail on lint notices
+        run: |
+          report=$(npx biome check --reporter=json)
+          infos=$(jq -e '.summary.infos' <<< "$report")
+          if [ "$infos" -ne 0 ]; then
+            echo "::error::Biome reported $infos notice(s). Run 'npm run lint' locally to see them."
+            exit 1
+          fi
 
       # Dev-only tooling (e.g. semantic-release's bundled npm) is excluded:
       # it never ships, and its advisories often have no upstream fix yet.
