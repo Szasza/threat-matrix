@@ -2,8 +2,9 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { gameStore } from "@/lib/decisions-disruptions/store";
+import "@/lib/games/bootstrap.server";
 import { getGameById } from "@/lib/games/catalog";
+import { getServerGameModule } from "@/lib/games/registry.server";
 import { roomStore } from "@/lib/rooms/store";
 
 export async function createRoomAction(
@@ -26,9 +27,14 @@ export async function createRoomAction(
     hostDisplayName,
     hostParticipantId,
   });
-  // Seeds a "setup"-phase GameState with default settings; the host adjusts
-  // and commits the final GameSettings (the Nation State toggle) from
-  // GameSetupPanel in the lobby when they click "Start Game".
-  gameStore.createGame(room.code);
+
+  const module = getServerGameModule(gameId);
+  if (!module) {
+    throw new Error(`Unknown game: ${gameId}`);
+  }
+  // Seeds a "setup"-phase game state with default settings; the host adjusts
+  // and commits the final settings from the module's SetupOptions in the
+  // lobby when they click "Start Game".
+  module.store.createGame(room.code);
   redirect(`/room/${room.code}`);
 }

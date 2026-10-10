@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { RoomTemplate } from "@/components/templates/RoomTemplate/RoomTemplate";
-import type { GameState } from "@/lib/decisions-disruptions/types";
 import type { Game } from "@/lib/games/types";
 import type { Room } from "@/lib/rooms/types";
 import { joinRoomAction, startGameAction } from "./actions";
@@ -20,7 +19,8 @@ export type RoomPageClientProps =
       hasJoined: true;
       currentParticipantId: string;
       initialRoom: Room;
-      initialGame: GameState | null;
+      /** Opaque — this game's own `ClientGameModule` knows its real shape. */
+      initialGame: unknown;
       shareUrl: string;
     };
 

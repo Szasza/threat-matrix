@@ -11,6 +11,7 @@ const meta = {
   },
   tags: ["autodocs"],
   args: {
+    gameId: "decisions-and-disruptions",
     onStart: fn(),
   },
 } satisfies Meta<typeof GameSetupPanel>;
@@ -63,5 +64,19 @@ export const HostStartsWithNationState: Story = {
     await expect(args.onStart).toHaveBeenCalledWith({
       includeNationState: true,
     });
+  },
+};
+
+export const UnknownGame: Story = {
+  args: {
+    gameId: "does-not-exist",
+    isHost: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("Unknown game: does-not-exist"),
+    ).toBeVisible();
+    expect(canvas.queryByRole("button")).not.toBeInTheDocument();
   },
 };

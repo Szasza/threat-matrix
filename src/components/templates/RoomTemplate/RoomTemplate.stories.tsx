@@ -212,7 +212,7 @@ export const LobbyRoundPhase: Story = {
     await userEvent.click(addButtons[0]);
 
     await expect(globalThis.fetch).toHaveBeenCalledWith(
-      `/api/rooms/${sampleRoom.code}/game/cart`,
+      `/api/rooms/${sampleRoom.code}/game/actions/add-to-cart`,
       expect.objectContaining({ method: "POST" }),
     );
 
@@ -251,13 +251,10 @@ export const RoundPhaseRemoveFromCart: Story = {
     await userEvent.click(removeButton);
 
     await expect(globalThis.fetch).toHaveBeenCalledWith(
-      `/api/rooms/${sampleRoom.code}/game/cart`,
+      `/api/rooms/${sampleRoom.code}/game/actions/remove-from-cart`,
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({
-          defenceName: firewallOffice.name,
-          action: "remove",
-        }),
+        body: JSON.stringify({ defenceName: firewallOffice.name }),
       }),
     );
   },
@@ -288,7 +285,7 @@ export const RoundPhaseEndRoundSuccess: Story = {
     await userEvent.click(endRoundButton);
 
     await expect(globalThis.fetch).toHaveBeenCalledWith(
-      `/api/rooms/${sampleRoom.code}/game/end-round`,
+      `/api/rooms/${sampleRoom.code}/game/actions/end-round`,
       expect.objectContaining({ method: "POST" }),
     );
     await expect(
@@ -365,7 +362,7 @@ export const RoundPhaseEndRoundOtherError: Story = {
     await userEvent.click(endRoundButton);
 
     await expect(globalThis.fetch).toHaveBeenCalledWith(
-      `/api/rooms/${sampleRoom.code}/game/end-round`,
+      `/api/rooms/${sampleRoom.code}/game/actions/end-round`,
       expect.objectContaining({ method: "POST" }),
     );
     await expect(
@@ -408,7 +405,7 @@ export const ReceivesLiveGameUpdate: Story = {
       data: JSON.stringify({
         ...sampleRoom,
         hostParticipantId: "participant-2",
-        game: finishedGameState,
+        gameState: finishedGameState,
       }),
     });
 
@@ -553,13 +550,10 @@ export const RoundPhasePlayerVotes: Story = {
       canvas.getByRole("button", { name: /^Vote for Firewall office/ }),
     );
     await expect(globalThis.fetch).toHaveBeenCalledWith(
-      `/api/rooms/${sampleRoom.code}/game/vote`,
+      `/api/rooms/${sampleRoom.code}/game/actions/vote`,
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({
-          defenceName: firewallOffice.name,
-          action: "vote",
-        }),
+        body: JSON.stringify({ defenceName: firewallOffice.name }),
       }),
     );
 
@@ -567,10 +561,37 @@ export const RoundPhasePlayerVotes: Story = {
       canvas.getByRole("button", { name: /^Vote for Antivirus/ }),
     );
     await expect(globalThis.fetch).toHaveBeenCalledWith(
-      `/api/rooms/${sampleRoom.code}/game/vote`,
+      `/api/rooms/${sampleRoom.code}/game/actions/unvote`,
       expect.objectContaining({
-        body: JSON.stringify({ defenceName: "Antivirus", action: "unvote" }),
+        body: JSON.stringify({ defenceName: "Antivirus" }),
       }),
     );
+  },
+};
+
+export const UnknownGame: Story = {
+  args: {
+    mode: "lobby",
+    game: { ...sampleGame, id: "does-not-exist" },
+    initialRoom: { ...sampleRoom, gameId: "does-not-exist" },
+    initialGame: roundGameState,
+    roomCode: sampleRoom.code,
+    currentParticipantId: "participant-1",
+    shareUrl: "https://example.com/room/AB12CD",
+    onLeave: fn(),
+    onRemoved: fn(),
+    onStartGame: fn(),
+  },
+  beforeEach: () => {
+    FakeEventSource.instances = [];
+    globalThis.EventSource =
+      FakeEventSource as unknown as typeof globalThis.EventSource;
+    globalThis.fetch = fn().mockResolvedValue({ status: 200 }) as never;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("Unknown game: does-not-exist"),
+    ).toBeVisible();
   },
 };

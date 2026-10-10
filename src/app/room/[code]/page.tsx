@@ -1,8 +1,8 @@
 import { cookies, headers } from "next/headers";
 import Link from "next/link";
-import { gameStateForViewer } from "@/lib/decisions-disruptions/redact";
-import { gameStore } from "@/lib/decisions-disruptions/store";
+import "@/lib/games/bootstrap.server";
 import { getGameById } from "@/lib/games/catalog";
+import { getServerGameModule } from "@/lib/games/registry.server";
 import { roomStore } from "@/lib/rooms/store";
 import { RoomPageClient } from "./RoomPageClient";
 
@@ -44,13 +44,9 @@ export default async function RoomPage({
   const host = headersList.get("host") ?? "localhost:3000";
   const protocol = process.env.NODE_ENV === "production" ? "https" : "http";
   const shareUrl = `${protocol}://${host}/room/${code}`;
-  const storedGame = gameStore.getGame(code)?.state;
-  const initialGame = storedGame
-    ? gameStateForViewer(
-        storedGame,
-        room.hostParticipantId === currentParticipantId,
-      )
-    : null;
+  const module = getServerGameModule(room.gameId);
+  const initialGame =
+    module?.getPublicState(room, currentParticipantId) ?? null;
 
   return (
     <main className="min-h-screen bg-slate-950 px-4 py-12 text-slate-50">
