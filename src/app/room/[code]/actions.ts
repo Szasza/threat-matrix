@@ -1,8 +1,8 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { gameStore } from "@/lib/decisions-disruptions/store";
-import type { GameSettings } from "@/lib/decisions-disruptions/types";
+import "@/lib/games/bootstrap.server";
+import { getServerGameModule } from "@/lib/games/registry";
 import { roomStore } from "@/lib/rooms/store";
 
 export async function joinRoomAction(
@@ -23,7 +23,7 @@ export async function joinRoomAction(
 
 export async function startGameAction(
   code: string,
-  settings: GameSettings,
+  settings: unknown,
 ): Promise<void> {
   const cookieStore = await cookies();
   const participantId = cookieStore.get("dd_player_id")?.value;
@@ -39,7 +39,12 @@ export async function startGameAction(
     throw new Error("Only the host can start the game");
   }
 
-  const state = gameStore.startGame(code, settings);
+  const module = getServerGameModule(room.gameId);
+  if (!module) {
+    throw new Error(`Unknown game: ${room.gameId}`);
+  }
+
+  const state = module.store.startGame(code, settings);
   if (!state) {
     throw new Error(`Game not found or already started: ${code}`);
   }

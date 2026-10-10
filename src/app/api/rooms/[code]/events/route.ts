@@ -2,9 +2,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { cookies } from "next/headers";
-import { gameStateForViewer } from "@/lib/decisions-disruptions/redact";
-import { gameStore } from "@/lib/decisions-disruptions/store";
-import type { GameState } from "@/lib/decisions-disruptions/types";
+import "@/lib/games/bootstrap.server";
+import { getServerGameModule } from "@/lib/games/registry";
 import { SSE_KEEPALIVE_MS } from "@/lib/rooms/constants";
 import { roomStore } from "@/lib/rooms/store";
 import type { Room } from "@/lib/rooms/types";
@@ -14,15 +13,18 @@ import type { Room } from "@/lib/rooms/types";
  * over the room's existing SSE stream (rather than opening a second
  * connection) — this is a superset of the plain `Room` shape, so
  * `RoomLobby`'s existing `setRoom(JSON.parse(event.data))` keeps working
- * unchanged (it just ignores the extra `game` key); only game-phase-aware
- * consumers read `.game`.
+ * unchanged (it just ignores the extra `gameState` key); only game-aware
+ * consumers read `.gameState`. It's `unknown` on the wire rather than a
+ * concrete type: this route doesn't know any game's internal shape, only
+ * its registered module does (`getPublicState`), so each game's own client
+ * code narrows it.
  *
- * `game` is tailored per connection: non-host viewers get the redacted
- * state (no attacker names, no unnoticed reveal entries). Whether this
- * viewer is the host is re-checked on every send, since the host can be
- * reassigned mid-game.
+ * `gameState` is tailored per connection: non-host viewers get whatever
+ * redaction the module's `getPublicState` applies (for D&D1, no attacker
+ * names, no unnoticed reveal entries). Whether this viewer is the host is
+ * re-checked on every send, since the host can be reassigned mid-game.
  */
-type RoomEventPayload = Room & { game: GameState | null };
+type RoomEventPayload = Room & { gameState: unknown };
 
 export async function GET(
   request: Request,
@@ -33,8 +35,9 @@ export async function GET(
   if (!room) {
     return new Response("Room not found", { status: 404 });
   }
+  const module = getServerGameModule(room.gameId);
   const cookieStore = await cookies();
-  const participantId = cookieStore.get("dd_player_id")?.value;
+  const participantId = cookieStore.get("dd_player_id")?.value ?? "";
   // An open stream is proof of presence: connecting (e.g. right after a page
   // reload) and every keep-alive re-confirm the participant, which clears a
   // "departing" mark left by the unloading page's beacon.
@@ -51,14 +54,11 @@ export async function GET(
   const stream = new ReadableStream({
     start(controller) {
       let latestRoom = room;
-      let latestGame = gameStore.getGame(code)?.state ?? null;
 
       const send = () => {
-        const isHost =
-          !!participantId && latestRoom.hostParticipantId === participantId;
         const payload: RoomEventPayload = {
           ...latestRoom,
-          game: latestGame && gameStateForViewer(latestGame, isHost),
+          gameState: module?.getPublicState(latestRoom, participantId) ?? null,
         };
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify(payload)}\n\n`),
@@ -70,8 +70,7 @@ export async function GET(
         latestRoom = nextRoom;
         send();
       });
-      unsubscribeGame = gameStore.subscribe(code, (nextGame) => {
-        latestGame = nextGame;
+      unsubscribeGame = module?.store.subscribe(code, () => {
         send();
       });
       keepAlive = setInterval(() => {

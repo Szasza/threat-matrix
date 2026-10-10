@@ -1,56 +1,30 @@
 "use client";
 
-import { type JSX, useId, useState } from "react";
-import { Button } from "@/components/atoms/Button/Button";
-import type { GameSettings } from "@/lib/decisions-disruptions/types";
+import type { JSX } from "react";
+import "@/lib/games/bootstrap.client";
+import { getClientGameModule } from "@/lib/games/registry";
 
 export interface GameSetupPanelProps {
+  gameId: string;
   isHost: boolean;
-  onStart: (settings: GameSettings) => void | Promise<void>;
+  onStart: (settings: unknown) => void | Promise<void>;
 }
 
+/**
+ * Thin shell over whichever game is being set up: the actual options (e.g.
+ * D&D1's "Include Nation State attacks" checkbox) live in that game's own
+ * `ClientGameModule.SetupOptions`, registered via `bootstrap.client`.
+ */
 export function GameSetupPanel({
+  gameId,
   isHost,
   onStart,
 }: GameSetupPanelProps): JSX.Element {
-  const [includeNationState, setIncludeNationState] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const checkboxId = useId();
-
-  if (!isHost) {
-    return (
-      <p className="text-sm text-slate-400">
-        Waiting for the host to start the game...
-      </p>
-    );
+  const module = getClientGameModule(gameId);
+  if (!module) {
+    return <p className="text-sm text-rose-400">Unknown game: {gameId}</p>;
   }
 
-  const handleStart = async () => {
-    setIsSubmitting(true);
-    try {
-      await onStart({ includeNationState });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  return (
-    <div className="flex flex-col gap-4 rounded-xl border border-slate-700 bg-slate-900 p-4">
-      <div className="flex items-center gap-2">
-        <input
-          id={checkboxId}
-          type="checkbox"
-          checked={includeNationState}
-          onChange={(event) => setIncludeNationState(event.target.checked)}
-          className="h-4 w-4 rounded border-slate-600 bg-slate-800"
-        />
-        <label htmlFor={checkboxId} className="text-sm text-slate-200">
-          Include Nation State attacks
-        </label>
-      </div>
-      <Button onClick={handleStart} loading={isSubmitting}>
-        Start Game
-      </Button>
-    </div>
-  );
+  const SetupOptions = module.SetupOptions;
+  return <SetupOptions isHost={isHost} onStart={onStart} />;
 }

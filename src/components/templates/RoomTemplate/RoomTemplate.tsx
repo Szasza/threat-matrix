@@ -4,14 +4,9 @@ import { type JSX, useEffect, useState } from "react";
 import { GameSetupPanel } from "@/components/organisms/GameSetupPanel/GameSetupPanel";
 import { JoinRoomPanel } from "@/components/organisms/JoinRoomPanel/JoinRoomPanel";
 import { RoomLobby } from "@/components/organisms/RoomLobby/RoomLobby";
-import { GameBoardTemplate } from "@/components/templates/GameBoardTemplate/GameBoardTemplate";
-import { GameDebriefTemplate } from "@/components/templates/GameDebriefTemplate/GameDebriefTemplate";
-import type {
-  Category,
-  GameSettings,
-  GameState,
-  OwnedDefence,
-} from "@/lib/decisions-disruptions/types";
+import "@/lib/games/bootstrap.client";
+import type { ActionDispatchResult } from "@/lib/games/module";
+import { getClientGameModule } from "@/lib/games/registry";
 import type { Game } from "@/lib/games/types";
 import { HEARTBEAT_INTERVAL_MS } from "@/lib/rooms/constants";
 import type { Room } from "@/lib/rooms/types";
@@ -27,13 +22,14 @@ export type RoomTemplateProps =
       mode: "lobby";
       game: Game;
       initialRoom: Room;
-      initialGame: GameState | null;
+      /** Opaque — this game's own `ClientGameModule` knows its real shape. */
+      initialGame: unknown;
       roomCode: string;
       currentParticipantId: string;
       shareUrl: string;
       onLeave: () => void;
       onRemoved: () => void;
-      onStartGame: (settings: GameSettings) => void | Promise<void>;
+      onStartGame: (settings: unknown) => void | Promise<void>;
       /**
        * Test-only override of the heartbeat interval. Defaults to the real
        * `HEARTBEAT_INTERVAL_MS` in production; stories inject a much shorter
@@ -44,110 +40,26 @@ export type RoomTemplateProps =
       heartbeatIntervalMs?: number;
     };
 
-type RoomEventPayload = Room & { game: GameState | null };
+type RoomEventPayload = Room & { gameState: unknown };
 
-const EMPTY_SCORES: Record<Category, number> = {
-  physical_defence: 0,
-  advanced_cyber_defence: 0,
-  cyber_defence: 0,
-  data_defence: 0,
-  intelligence_gathering: 0,
-  human_factors: 0,
-};
-
-/**
- * A defence purchased in round r contributes `5 - r` points to its
- * category's score. This mirrors `computeScores` in the server-only
- * `engine.server.ts`, but is re-derived here (rather than imported) because
- * that module is guarded with `server-only` and importing it would break
- * this client component's bundle; the arithmetic itself is public and safe
- * to duplicate client-side.
- */
-function computeScores(
-  ownedDefences: readonly OwnedDefence[],
-): Record<Category, number> {
-  const scores = { ...EMPTY_SCORES };
-  for (const owned of ownedDefences) {
-    scores[owned.defence.category] += 5 - owned.round;
-  }
-  return scores;
-}
-
-function GamePhaseView({
-  game,
-  isHost,
-  roomCode,
-  currentParticipantId,
-}: {
-  game: GameState;
-  isHost: boolean;
-  roomCode: string;
-  currentParticipantId: string;
-}): JSX.Element {
-  const [endRoundError, setEndRoundError] = useState<string | undefined>(
-    undefined,
+async function dispatchGameAction(
+  roomCode: string,
+  action: string,
+  payload?: unknown,
+): Promise<ActionDispatchResult> {
+  const response = await fetch(
+    `/api/rooms/${roomCode}/game/actions/${action}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload ?? {}),
+    },
   );
-
-  const handleAddToCart = async (defenceName: string) => {
-    await fetch(`/api/rooms/${roomCode}/game/cart`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ defenceName, action: "add" }),
-    });
-  };
-
-  const handleRemoveFromCart = async (defenceName: string) => {
-    await fetch(`/api/rooms/${roomCode}/game/cart`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ defenceName, action: "remove" }),
-    });
-  };
-
-  const handleVote = async (defenceName: string, action: "vote" | "unvote") => {
-    await fetch(`/api/rooms/${roomCode}/game/vote`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ defenceName, action }),
-    });
-  };
-
-  const handleEndRound = async () => {
-    const response = await fetch(`/api/rooms/${roomCode}/game/end-round`, {
-      method: "POST",
-    });
-    if (response.ok) {
-      setEndRoundError(undefined);
-      return;
-    }
-    const body = await response.json().catch(() => ({}));
-    if (body.error === "over-budget") {
-      setEndRoundError(body.message);
-    }
-  };
-
-  if (game.phase === "finished") {
-    return (
-      <GameDebriefTemplate
-        scores={computeScores(game.ownedDefences)}
-        revealHistory={game.revealHistory}
-      />
-    );
+  if (response.ok) {
+    return { ok: true };
   }
-
-  return (
-    <GameBoardTemplate
-      game={game}
-      isHost={isHost}
-      currentParticipantId={currentParticipantId}
-      onAddToCart={handleAddToCart}
-      onRemoveFromCart={handleRemoveFromCart}
-      onEndRound={handleEndRound}
-      onVote={(defenceName) => handleVote(defenceName, "vote")}
-      onUnvote={(defenceName) => handleVote(defenceName, "unvote")}
-      endRoundError={endRoundError}
-    />
-  );
+  const body = await response.json().catch(() => ({}));
+  return { ok: false, error: body.error, message: body.message };
 }
 
 function RoomGameRouter(
@@ -166,17 +78,19 @@ function RoomGameRouter(
     heartbeatIntervalMs = HEARTBEAT_INTERVAL_MS,
   } = props;
 
+  const module = getClientGameModule(game.id);
+
   const [hostParticipantId, setHostParticipantId] = useState(
     initialRoom.hostParticipantId,
   );
-  const [gameState, setGameState] = useState<GameState | null>(initialGame);
+  const [gameState, setGameState] = useState<unknown>(initialGame);
 
   useEffect(() => {
     const source = new EventSource(`/api/rooms/${roomCode}/events`);
     source.onmessage = (event) => {
       const payload: RoomEventPayload = JSON.parse(event.data);
       setHostParticipantId(payload.hostParticipantId);
-      setGameState(payload.game);
+      setGameState(payload.gameState);
     };
     return () => {
       source.close();
@@ -184,16 +98,17 @@ function RoomGameRouter(
   }, [roomCode]);
 
   const isHost = currentParticipantId === hostParticipantId;
-  const isInSetupPhase = !gameState || gameState.phase === "setup";
+  const isInSetupPhase =
+    !module || gameState == null || module.isInSetup(gameState);
 
-  // `RoomLobby` (rendered only during the "setup" phase below) owns the
-  // heartbeat that keeps this participant from being swept as stale — but it
-  // unmounts once the game starts. Without a heartbeat continuing here, a
-  // participant who's just been quietly reading the shop/reveal screens for
-  // over `STALE_AFTER_MS` (default 60s, easily exceeded by real
-  // group-consensus discussion) would get dropped from `room.participants`,
-  // silently breaking every host-only check for the rest of the game. This
-  // picks up heartbeating the moment "setup" ends, so there's no gap.
+  // `RoomLobby` (rendered only during setup below) owns the heartbeat that
+  // keeps this participant from being swept as stale — but it unmounts once
+  // the game starts. Without a heartbeat continuing here, a participant
+  // who's just been quietly reading the board for over `STALE_AFTER_MS`
+  // (default 60s, easily exceeded by real group-consensus discussion) would
+  // get dropped from `room.participants`, silently breaking every host-only
+  // check for the rest of the game. This picks up heartbeating the moment
+  // setup ends, so there's no gap.
   useEffect(() => {
     if (isInSetupPhase) return;
     let removed = false;
@@ -213,6 +128,10 @@ function RoomGameRouter(
     };
   }, [isInSetupPhase, roomCode, onRemoved, heartbeatIntervalMs]);
 
+  if (!module) {
+    return <p className="text-sm text-rose-400">Unknown game: {game.id}</p>;
+  }
+
   if (isInSetupPhase) {
     return (
       <div className="flex flex-col gap-6">
@@ -225,17 +144,24 @@ function RoomGameRouter(
           onLeave={onLeave}
           onRemoved={onRemoved}
         />
-        <GameSetupPanel isHost={isHost} onStart={onStartGame} />
+        <GameSetupPanel
+          gameId={game.id}
+          isHost={isHost}
+          onStart={onStartGame}
+        />
       </div>
     );
   }
 
+  const GameView = module.GameView;
   return (
-    <GamePhaseView
-      game={gameState}
+    <GameView
+      state={gameState}
       isHost={isHost}
-      roomCode={roomCode}
       currentParticipantId={currentParticipantId}
+      dispatch={(action, payload) =>
+        dispatchGameAction(roomCode, action, payload)
+      }
     />
   );
 }

@@ -11,6 +11,7 @@ const meta = {
   },
   tags: ["autodocs"],
   args: {
+    gameId: "decisions-and-disruptions",
     onStart: fn(),
   },
 } satisfies Meta<typeof GameSetupPanel>;
