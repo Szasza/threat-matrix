@@ -2,7 +2,7 @@
 
 import { cookies } from "next/headers";
 import "@/lib/games/bootstrap.server";
-import { getServerGameModule } from "@/lib/games/registry";
+import { getServerGameModule } from "@/lib/games/registry.server";
 import { roomStore } from "@/lib/rooms/store";
 
 export async function joinRoomAction(

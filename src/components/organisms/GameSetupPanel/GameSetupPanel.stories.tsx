@@ -66,3 +66,17 @@ export const HostStartsWithNationState: Story = {
     });
   },
 };
+
+export const UnknownGame: Story = {
+  args: {
+    gameId: "does-not-exist",
+    isHost: true,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("Unknown game: does-not-exist"),
+    ).toBeVisible();
+    expect(canvas.queryByRole("button")).not.toBeInTheDocument();
+  },
+};

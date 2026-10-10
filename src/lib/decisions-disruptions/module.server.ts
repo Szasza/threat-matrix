@@ -1,6 +1,6 @@
 import "server-only";
 import type { ActionResult, ServerGameModule } from "@/lib/games/module";
-import { registerServerGame } from "@/lib/games/registry";
+import { registerServerGame } from "@/lib/games/registry.server";
 import { gameStateForViewer } from "./redact";
 import { gameStore } from "./store";
 import type { GameSettings, GameState } from "./types";

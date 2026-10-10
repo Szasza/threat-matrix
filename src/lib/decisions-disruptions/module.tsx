@@ -5,7 +5,7 @@ import { Button } from "@/components/atoms/Button/Button";
 import { GameBoardTemplate } from "@/components/templates/GameBoardTemplate/GameBoardTemplate";
 import { GameDebriefTemplate } from "@/components/templates/GameDebriefTemplate/GameDebriefTemplate";
 import type { ClientGameModule, DispatchAction } from "@/lib/games/module";
-import { registerClientGame } from "@/lib/games/registry";
+import { registerClientGame } from "@/lib/games/registry.client";
 import type { Category, GameSettings, GameState, OwnedDefence } from "./types";
 
 const EMPTY_SCORES: Record<Category, number> = {

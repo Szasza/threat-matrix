@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import "@/lib/games/bootstrap.server";
 import { authorizeAction } from "@/lib/games/module";
-import { getServerGameModule } from "@/lib/games/registry";
+import { getServerGameModule } from "@/lib/games/registry.server";
 import { roomStore } from "@/lib/rooms/store";
 
 /**

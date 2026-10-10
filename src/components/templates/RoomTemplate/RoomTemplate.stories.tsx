@@ -568,3 +568,30 @@ export const RoundPhasePlayerVotes: Story = {
     );
   },
 };
+
+export const UnknownGame: Story = {
+  args: {
+    mode: "lobby",
+    game: { ...sampleGame, id: "does-not-exist" },
+    initialRoom: { ...sampleRoom, gameId: "does-not-exist" },
+    initialGame: roundGameState,
+    roomCode: sampleRoom.code,
+    currentParticipantId: "participant-1",
+    shareUrl: "https://example.com/room/AB12CD",
+    onLeave: fn(),
+    onRemoved: fn(),
+    onStartGame: fn(),
+  },
+  beforeEach: () => {
+    FakeEventSource.instances = [];
+    globalThis.EventSource =
+      FakeEventSource as unknown as typeof globalThis.EventSource;
+    globalThis.fetch = fn().mockResolvedValue({ status: 200 }) as never;
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("Unknown game: does-not-exist"),
+    ).toBeVisible();
+  },
+};

@@ -12,7 +12,8 @@ import type { Room } from "@/lib/rooms/types";
  * ES module imports execute a file's entire top-level graph regardless of
  * which named export is actually used — so each half is registered from its
  * own file instead (see `decisions-disruptions/module.server.ts` vs.
- * `decisions-disruptions/module.tsx`, and `registry.ts`'s two registries).
+ * `decisions-disruptions/module.tsx`, and `registry.server.ts` vs.
+ * `registry.client.ts`).
  */
 
 /**

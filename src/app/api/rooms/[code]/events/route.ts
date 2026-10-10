@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 
 import { cookies } from "next/headers";
 import "@/lib/games/bootstrap.server";
-import { getServerGameModule } from "@/lib/games/registry";
+import { getServerGameModule } from "@/lib/games/registry.server";
 import { SSE_KEEPALIVE_MS } from "@/lib/rooms/constants";
 import { roomStore } from "@/lib/rooms/store";
 import type { Room } from "@/lib/rooms/types";

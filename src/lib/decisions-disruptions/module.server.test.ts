@@ -44,6 +44,23 @@ describe("decisionsAndDisruptionsServerModule.actions", () => {
       });
     });
 
+    it("rejects a non-object payload (e.g. a malformed request body)", () => {
+      const code = freshRoomCode();
+      startedGame(code);
+
+      const result = module.actions["add-to-cart"].handler(
+        code,
+        "host-1",
+        "not-an-object",
+      );
+
+      expect(result).toEqual({
+        ok: false,
+        reason: "invalid-payload",
+        message: "defenceName is required.",
+      });
+    });
+
     it('is declared "host" authorization', () => {
       expect(module.actions["add-to-cart"].authorization).toBe("host");
     });
@@ -83,6 +100,19 @@ describe("decisionsAndDisruptionsServerModule.actions", () => {
       });
     });
 
+    it("rejects a payload missing defenceName", () => {
+      const code = freshRoomCode();
+      startedGame(code);
+
+      const result = module.actions.vote.handler(code, "player-1", {});
+
+      expect(result).toEqual({
+        ok: false,
+        reason: "invalid-payload",
+        message: "defenceName is required.",
+      });
+    });
+
     it("removes a vote on unvote", () => {
       const code = freshRoomCode();
       startedGame(code);
@@ -111,6 +141,22 @@ describe("decisionsAndDisruptionsServerModule.actions", () => {
       const result = module.actions["end-round"].handler(code, "host-1", {});
 
       expect(result).toMatchObject({ ok: true, state: { round: 2 } });
+    });
+
+    it("passes through a failure reason with no store-level `error` string as an undefined message", () => {
+      const code = freshRoomCode();
+      gameStore.createGame(code);
+      // Not started yet: `gameStore.endRound`'s "not-in-round" failure has no
+      // `error` field, unlike "over-budget" — exercises the other side of
+      // `"error" in result ? result.error : undefined`.
+
+      const result = module.actions["end-round"].handler(code, "host-1", {});
+
+      expect(result).toEqual({
+        ok: false,
+        reason: "not-in-round",
+        message: undefined,
+      });
     });
 
     it("maps the store's over-budget `error` string to the generic `message` field", () => {

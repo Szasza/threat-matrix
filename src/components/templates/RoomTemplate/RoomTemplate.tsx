@@ -6,7 +6,7 @@ import { JoinRoomPanel } from "@/components/organisms/JoinRoomPanel/JoinRoomPane
 import { RoomLobby } from "@/components/organisms/RoomLobby/RoomLobby";
 import "@/lib/games/bootstrap.client";
 import type { ActionDispatchResult } from "@/lib/games/module";
-import { getClientGameModule } from "@/lib/games/registry";
+import { getClientGameModule } from "@/lib/games/registry.client";
 import type { Game } from "@/lib/games/types";
 import { HEARTBEAT_INTERVAL_MS } from "@/lib/rooms/constants";
 import type { Room } from "@/lib/rooms/types";

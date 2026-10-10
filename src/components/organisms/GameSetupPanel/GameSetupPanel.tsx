@@ -2,7 +2,7 @@
 
 import type { JSX } from "react";
 import "@/lib/games/bootstrap.client";
-import { getClientGameModule } from "@/lib/games/registry";
+import { getClientGameModule } from "@/lib/games/registry.client";
 
 export interface GameSetupPanelProps {
   gameId: string;

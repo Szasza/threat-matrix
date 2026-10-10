@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import "@/lib/games/bootstrap.server";
 import { getGameById } from "@/lib/games/catalog";
-import { getServerGameModule } from "@/lib/games/registry";
+import { getServerGameModule } from "@/lib/games/registry.server";
 import { roomStore } from "@/lib/rooms/store";
 
 export async function createRoomAction(
