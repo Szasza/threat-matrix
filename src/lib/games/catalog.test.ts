@@ -13,6 +13,19 @@ describe("GAMES", () => {
     expect(game?.estimatedMinutes).toBe(90);
   });
 
+  it("includes the Decisions & Disruptions 2 entry", () => {
+    const game = getGameById("decisions-and-disruptions-2");
+
+    expect(game?.name).toBe("Decisions & Disruptions 2");
+    expect(game?.minPlayers).toBe(3);
+    expect(game?.maxPlayers).toBe(5);
+  });
+
+  it("has unique ids", () => {
+    const ids = GAMES.map((g) => g.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it("is not empty, so the portal always has at least one game to show", () => {
     expect(GAMES.length).toBeGreaterThan(0);
   });

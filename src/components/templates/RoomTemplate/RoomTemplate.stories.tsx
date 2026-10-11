@@ -3,6 +3,8 @@ import { expect, fn, userEvent, within } from "storybook/test";
 
 import { getDefenceByName } from "@/lib/decisions-disruptions/defences";
 import type { GameState } from "@/lib/decisions-disruptions/types";
+import { sampleRoundState } from "@/lib/decisions-disruptions-2/fixtures";
+import type { GameState as Dd2GameState } from "@/lib/decisions-disruptions-2/types";
 import type { Game } from "@/lib/games/types";
 import type { Room } from "@/lib/rooms/types";
 import { RoomTemplate, type RoomTemplateProps } from "./RoomTemplate";
@@ -592,6 +594,206 @@ export const UnknownGame: Story = {
     const canvas = within(canvasElement);
     await expect(
       canvas.getByText("Unknown game: does-not-exist"),
+    ).toBeVisible();
+  },
+};
+
+// --- Decisions & Disruptions 2 -------------------------------------------
+// The same room shell driving the second registered game module: these
+// exercise D&D2's `SetupOptions` and `GameView` through the real registry.
+
+const dd2Game: Game = {
+  id: "decisions-and-disruptions-2",
+  name: "Decisions & Disruptions 2",
+  description: "Run the incident response team of a financial organisation.",
+  minPlayers: 3,
+  maxPlayers: 5,
+  estimatedMinutes: 90,
+};
+
+const dd2Room: Room = { ...sampleRoom, gameId: dd2Game.id };
+
+const dd2SetupState: Dd2GameState = {
+  ...sampleRoundState,
+  phase: "setup",
+  round: 1,
+  openEvents: [],
+  timeline: [],
+};
+
+function dd2LobbyArgs(
+  initialGame: Dd2GameState,
+  currentParticipantId = "participant-1",
+) {
+  return {
+    mode: "lobby" as const,
+    game: dd2Game,
+    initialRoom: dd2Room,
+    initialGame,
+    roomCode: dd2Room.code,
+    currentParticipantId,
+    shareUrl: "https://example.com/room/AB12CD",
+    onLeave: fn(),
+    onRemoved: fn(),
+    onStartGame: fn(),
+  };
+}
+
+function installFakes(response: unknown) {
+  return () => {
+    FakeEventSource.instances = [];
+    globalThis.EventSource =
+      FakeEventSource as unknown as typeof globalThis.EventSource;
+    globalThis.fetch = fn().mockResolvedValue(response) as never;
+  };
+}
+
+const okResponse = { status: 204, ok: true, json: async () => ({}) };
+
+function expectAction(action: string, payload: unknown) {
+  return expect(globalThis.fetch).toHaveBeenCalledWith(
+    `/api/rooms/${dd2Room.code}/game/actions/${action}`,
+    expect.objectContaining({
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export const Dd2LobbySetupHost: Story = {
+  args: dd2LobbyArgs(dd2SetupState),
+  beforeEach: installFakes({ status: 200 }),
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(
+      canvas.getByRole("checkbox", { name: "Enforce round timer" }),
+    );
+    await userEvent.click(canvas.getByRole("button", { name: "Start Game" }));
+    const lobbyArgs = args as Extract<RoomTemplateProps, { mode: "lobby" }>;
+    await expect(lobbyArgs.onStartGame).toHaveBeenCalledWith({
+      enforceRoundTimer: true,
+    });
+  },
+};
+
+export const Dd2HostPlaysADay: Story = {
+  args: dd2LobbyArgs(sampleRoundState),
+  beforeEach: installFakes(okResponse),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole("heading", { name: "Day 2 / 5" }),
+    ).toBeVisible();
+
+    const usb = within(
+      canvas.getByRole("article", {
+        name: "Direct #145: A USB stick found in the car park",
+      }),
+    );
+    await userEvent.click(usb.getByRole("button", { name: /Destroy it/ }));
+    await userEvent.click(usb.getByRole("button", { name: "Confirm" }));
+    await expectAction("resolve-choice", {
+      eventId: "usb-stick@1",
+      choiceId: "destroy",
+    });
+
+    const vpn = within(canvas.getByRole("region", { name: "VPN" }));
+    await userEvent.click(vpn.getByRole("button", { name: "Buy upgrade" }));
+    await expectAction("purchase-upgrade", { upgradeId: "vpn-patch" });
+
+    await userEvent.click(canvas.getByRole("button", { name: "End day 2" }));
+    await expectAction("end-round", {});
+    expect(canvas.queryByRole("alert")).not.toBeInTheDocument();
+  },
+};
+
+export const Dd2PlayerVotes: Story = {
+  args: dd2LobbyArgs(sampleRoundState, "p2"),
+  beforeEach: installFakes(okResponse),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const creds = within(
+      canvas.getByRole("article", {
+        name: "Ticket #131: Impossible-travel logins on finance mailboxes",
+      }),
+    );
+    await userEvent.click(
+      creds.getByRole("button", { name: /Disable the affected/ }),
+    );
+    await expectAction("cast-ballot", {
+      eventId: "credential-harvest@2",
+      choiceId: "disable",
+    });
+
+    const email = within(
+      canvas.getByRole("region", { name: "Email & Productivity" }),
+    );
+    await userEvent.click(email.getByRole("button", { name: /Voted/ }));
+    await expectAction("unvote-upgrade", { upgradeId: "email-training" });
+
+    const soc = within(canvas.getByRole("region", { name: "SOC / SIEM" }));
+    await userEvent.click(soc.getByRole("button", { name: /^Vote/ }));
+    await expectAction("vote-upgrade", { upgradeId: "soc-triage" });
+  },
+};
+
+export const Dd2ActionRejected: Story = {
+  args: dd2LobbyArgs(sampleRoundState),
+  beforeEach: installFakes({
+    ok: false,
+    json: async () => ({
+      error: "insufficient-hours",
+      message: "Needs 20h, but only 4h are left today.",
+    }),
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "End day 2" }));
+    await expect(await canvas.findByRole("alert")).toHaveTextContent(
+      "Needs 20h, but only 4h are left today.",
+    );
+  },
+};
+
+export const Dd2ActionFailsWithoutMessage: Story = {
+  args: dd2LobbyArgs(sampleRoundState),
+  beforeEach: installFakes({
+    ok: false,
+    json: async () => {
+      throw new Error("not json");
+    },
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByRole("button", { name: "End day 2" }));
+    await expect(await canvas.findByRole("alert")).toHaveTextContent(
+      "That didn't work. Try again.",
+    );
+  },
+};
+
+export const Dd2Debrief: Story = {
+  args: dd2LobbyArgs({ ...sampleRoundState, phase: "finished", round: 5 }),
+  beforeEach: installFakes({ status: 200 }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole("heading", { name: "You made it through the week" }),
+    ).toBeVisible();
+  },
+};
+
+export const Dd2LostDebrief: Story = {
+  args: dd2LobbyArgs({
+    ...sampleRoundState,
+    phase: "lost",
+    lossReason: "share-price",
+  }),
+  beforeEach: installFakes({ status: 200 }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByRole("heading", { name: "Game over" }),
     ).toBeVisible();
   },
 };
