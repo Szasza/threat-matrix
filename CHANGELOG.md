@@ -1,3 +1,9 @@
+## [0.8.0](https://github.com/Szasza/threat-matrix/compare/v0.7.0...v0.8.0) (2026-10-11)
+
+### Features
+
+* adding Decisions & Disruptions 2 ([#35](https://github.com/Szasza/threat-matrix/issues/35)) ([4406015](https://github.com/Szasza/threat-matrix/commit/4406015921a51cb8d3afac61a2a817220259e90e))
+
 ## [0.7.0](https://github.com/Szasza/threat-matrix/compare/v0.6.1...v0.7.0) (2026-10-03)
 
 ### Features
