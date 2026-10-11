@@ -28,6 +28,8 @@ export default defineConfig({
         "src/**/*.test.ts",
         "src/app/**",
         "src/**/types.ts",
+        // Test-only helpers shared between unit test files.
+        "src/**/testing.ts",
       ],
     },
     projects: [

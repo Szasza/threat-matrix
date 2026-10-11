@@ -6,3 +6,4 @@
  * only means adding a line here, not touching every consumer.
  */
 import "@/lib/decisions-disruptions/module";
+import "@/lib/decisions-disruptions-2/module";

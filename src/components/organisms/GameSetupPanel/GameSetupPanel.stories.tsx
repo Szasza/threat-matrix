@@ -80,3 +80,38 @@ export const UnknownGame: Story = {
     expect(canvas.queryByRole("button")).not.toBeInTheDocument();
   },
 };
+
+export const Dd2HostStartsWithGuideTimer: Story = {
+  args: {
+    gameId: "decisions-and-disruptions-2",
+    isHost: true,
+  },
+  play: async ({ args, canvasElement }) => {
+    const canvas = within(canvasElement);
+    const checkbox = canvas.getByRole("checkbox", {
+      name: "Enforce round timer",
+    });
+    await expect(checkbox).not.toBeChecked();
+    await expect(checkbox).toHaveAccessibleDescription(
+      /ends automatically after 20 minutes/,
+    );
+    await userEvent.click(canvas.getByRole("button", { name: "Start Game" }));
+    await expect(args.onStart).toHaveBeenCalledWith({
+      enforceRoundTimer: false,
+    });
+  },
+};
+
+export const Dd2NonHost: Story = {
+  args: {
+    gameId: "decisions-and-disruptions-2",
+    isHost: false,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(
+      canvas.getByText("Waiting for the host to start the game..."),
+    ).toBeVisible();
+    expect(canvas.queryByRole("checkbox")).not.toBeInTheDocument();
+  },
+};

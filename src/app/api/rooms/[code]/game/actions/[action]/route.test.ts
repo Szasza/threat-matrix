@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { gameStore } from "@/lib/decisions-disruptions/store";
+import { gameStore as dd2GameStore } from "@/lib/decisions-disruptions-2/store";
 import { roomStore } from "@/lib/rooms/store";
 // Importing the route also imports `bootstrap.server`, registering D&D1's
 // server module as a side effect.
@@ -140,5 +141,70 @@ describe("POST /api/rooms/[code]/game/actions/[action]", () => {
     cookieValue = "host-1";
     const response = await post(code, "add-to-cart", {});
     expect(response.status).toBe(400);
+  });
+});
+
+describe("POST /api/rooms/[code]/game/actions/[action] for D&D2", () => {
+  function setupDd2Room(): { code: string; eventId: string } {
+    const { room } = roomStore.createRoom({
+      gameId: "decisions-and-disruptions-2",
+      hostDisplayName: "Host",
+      hostParticipantId: "host-1",
+    });
+    roomStore.joinRoom(room.code, {
+      participantId: "player-1",
+      displayName: "Player",
+    });
+    // Pin the game's seed so round 1 is known to have open events.
+    vi.spyOn(Math, "random").mockReturnValueOnce(0.5);
+    dd2GameStore.createGame(room.code);
+    dd2GameStore.startGame(room.code, { enforceRoundTimer: false });
+    const eventId =
+      dd2GameStore.getGame(room.code)?.state.openEvents[0]?.id ?? "";
+    return { code: room.code, eventId };
+  }
+
+  it("routes to D&D2's module and lets the host commit a choice", async () => {
+    const { code, eventId } = setupDd2Room();
+    cookieValue = "host-1";
+    const response = await post(code, "resolve-choice", {
+      eventId,
+      choiceId: "ignore",
+    });
+    expect(response.status).toBe(204);
+    expect(dd2GameStore.getGame(code)?.state.openEvents[0].ignored).toBe(true);
+  });
+
+  it("rejects a player committing a choice with 403", async () => {
+    const { code, eventId } = setupDd2Room();
+    cookieValue = "player-1";
+    const response = await post(code, "resolve-choice", {
+      eventId,
+      choiceId: "ignore",
+    });
+    expect(response.status).toBe(403);
+  });
+
+  it("bars the host from casting an advisory ballot with 403", async () => {
+    const { code, eventId } = setupDd2Room();
+    cookieValue = "host-1";
+    const response = await post(code, "cast-ballot", {
+      eventId,
+      choiceId: "ignore",
+    });
+    expect(response.status).toBe(403);
+  });
+
+  it("returns the engine's reason and message on a rejected action", async () => {
+    const { code } = setupDd2Room();
+    cookieValue = "host-1";
+    const response = await post(code, "purchase-upgrade", {
+      upgradeId: "vpn-mfa",
+    });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({
+      error: "locked",
+      message: "Buy the previous tier for this asset first.",
+    });
   });
 });

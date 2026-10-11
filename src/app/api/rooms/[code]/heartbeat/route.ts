@@ -1,4 +1,6 @@
 import { cookies } from "next/headers";
+import "@/lib/games/bootstrap.server";
+import { getServerGameModule } from "@/lib/games/registry.server";
 import { roomStore } from "@/lib/rooms/store";
 
 export async function POST(
@@ -14,6 +16,13 @@ export async function POST(
 
   if (!found) {
     return Response.json({ removed: true }, { status: 410 });
+  }
+
+  // Every connected client polls this route, so it doubles as a periodic
+  // trigger for a game's time-based rules (e.g. D&D2's round timer).
+  const room = roomStore.getRoom(code);
+  if (room) {
+    getServerGameModule(room.gameId)?.onHeartbeat?.(code);
   }
   return new Response(null, { status: 204 });
 }

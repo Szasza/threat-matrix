@@ -80,6 +80,13 @@ export interface ServerGameModule<TState = unknown, TSettings = unknown> {
     room: Pick<Room, "code" | "hostParticipantId">,
     participantId: string,
   ): TState | null;
+  /**
+   * Optional hook run on every participant heartbeat for this room. The
+   * heartbeat is polled by every connected client whether or not anyone is
+   * acting, so it's a reliable periodic trigger for time-based rules (D&D2's
+   * round timer) without a dedicated server-side timer per room.
+   */
+  onHeartbeat?(code: string): void;
 }
 
 /**

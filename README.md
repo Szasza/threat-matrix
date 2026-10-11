@@ -14,7 +14,16 @@ A digital adaptation of [Decisions & Disruptions](https://www.decisions-disrupti
 - The host can include optional *Nation State* attackers when setting up the game.
 - A debrief after round 4 shows the full history of the game.
 
-A second game, *Decisions & Disruptions 2*, is planned. See [`specs/SPEC.md`](specs/SPEC.md).
+### Decisions & Disruptions 2
+
+A digital adaptation of *Decisions & Disruptions 2: Decide Harder* (Shreeve et al., University of Bristol, SOUPS 2023). The team runs the CISO's incident response team at a financial organisation through a very bad week.
+
+- Over **5 days**, each with **80 staff hours**, the team handles incoming incidents (tickets, news stories and direct messages) and upgrades its Enterprise Architecture: firewall, VPN, core banking, the CRM and other systems.
+- Each day draws 5 events at random from the ones the current attack surface allows. Choices made earlier can also trigger follow-up events, and ignored incidents can get worse overnight.
+- Upgrades raise an asset's *resistance*. Resistance is the chance that the asset stops an attack, not a guarantee.
+- The team loses at once if projected profit (starting at £500k) or the share price (starting at £100) reaches zero, or if 10 or more incidents are open at the same time.
+- The host plays the CISO and commits every decision. The other players vote on responses and upgrades.
+- The host can choose to enforce the 20-minute round timer when setting up the game. A debrief at the end shows the whole week, including every roll.
 
 ## Tech stack
 
@@ -111,6 +120,7 @@ src/
     rooms/                Room lifecycle, participants, heartbeats (works for any game)
     games/                Catalogue of the available games
     decisions-disruptions/  Game engine, defences, attacks and scenario for D&D
+    decisions-disruptions-2/  Event engine, EA assets and event library for D&D2
   proxy.ts                Assigns each browser its anonymous player-ID cookie
 specs/                    Plans for upcoming features
 ```

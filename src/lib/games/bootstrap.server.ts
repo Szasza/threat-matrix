@@ -9,3 +9,4 @@ import "server-only";
  * consumer.
  */
 import "@/lib/decisions-disruptions/module.server";
+import "@/lib/decisions-disruptions-2/module.server";
