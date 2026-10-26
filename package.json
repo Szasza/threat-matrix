@@ -52,7 +52,7 @@
     "husky": "^9.1.7",
     "playwright": "^1.63.0",
     "semantic-release": "^25.0.9",
-    "storybook": "^10.6.0",
+    "storybook": "^10.6.2",
     "tailwindcss": "^4",
     "typescript": "^7",
     "vite": "^8.3.0",
